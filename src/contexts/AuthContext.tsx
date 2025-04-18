@@ -4,11 +4,16 @@ import { User, UserRole } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize Supabase client
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+// Initialize Supabase client with fallback values for development
+// This ensures we don't get "supabaseUrl is required" errors
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-supabase-project-url.supabase.co';
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-placeholder-key-for-dev-only';
 
+// Create the Supabase client only if we have valid values
 const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Log for debugging
+console.log('Supabase initialization with URL:', supabaseUrl ? 'URL present' : 'URL missing');
 
 interface AuthContextType {
   user: User | null;
@@ -70,7 +75,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // First check Supabase session
         const { data: { session }, error } = await supabase.auth.getSession();
         
-        if (error) throw error;
+        if (error) {
+          console.error('Supabase session error:', error);
+          throw error;
+        }
         
         if (session?.user) {
           const { data: profile, error: profileError } = await supabase
