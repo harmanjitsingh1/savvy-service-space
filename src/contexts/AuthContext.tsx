@@ -2,18 +2,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, UserRole } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
-import { createClient } from '@supabase/supabase-js';
-
-// Initialize Supabase client with fallback values for development
-// This ensures we don't get "supabaseUrl is required" errors
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-supabase-project-url.supabase.co';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-placeholder-key-for-dev-only';
-
-// Create the Supabase client only if we have valid values
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-// Log for debugging
-console.log('Supabase initialization with URL:', supabaseUrl ? 'URL present' : 'URL missing');
+import { supabase } from '@/integrations/supabase/client';
 
 interface AuthContextType {
   user: User | null;
@@ -29,137 +18,54 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock user data for demo purposes (will be replaced with Supabase data)
-const MOCK_USERS: User[] = [
-  {
-    id: '1',
-    email: 'user@example.com',
-    name: 'John Doe',
-    role: 'user',
-    bio: 'Regular user looking for great services',
-    phone: '555-123-4567',
-    image: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36',
-    address: '123 User St',
-    city: 'Usertown',
-    state: 'UT',
-    zipCode: '12345',
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: '2',
-    email: 'provider@example.com',
-    name: 'Jane Smith',
-    role: 'provider',
-    bio: 'Professional service provider with 10 years of experience',
-    phone: '555-987-6543',
-    image: 'https://images.unsplash.com/photo-1580489944761-15a19d654956',
-    address: '456 Provider Ave',
-    city: 'Providertown',
-    state: 'PT',
-    zipCode: '67890',
-    createdAt: new Date().toISOString()
-  }
-];
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  
-  // Check for stored session on initial load
+
   useEffect(() => {
-    const checkSession = async () => {
-      setIsLoading(true);
-      
-      try {
-        // First check Supabase session
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Supabase session error:', error);
-          throw error;
-        }
-        
-        if (session?.user) {
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-            
-          if (profileError) throw profileError;
-          
-          // Transform Supabase user data to match our User type
-          const userData: User = {
-            id: session.user.id,
-            email: session.user.email || '',
-            name: profile?.name || '',
-            role: profile?.role || 'user',
-            bio: profile?.bio || '',
-            phone: profile?.phone || '',
-            image: profile?.image || '',
-            address: profile?.address || '',
-            city: profile?.city || '',
-            state: profile?.state || '',
-            zipCode: profile?.zipCode || '',
-            createdAt: profile?.created_at || new Date().toISOString(),
-          };
-          
-          setUser(userData);
-        } else {
-          // Check for local storage fallback (for development)
-          const savedUser = localStorage.getItem('serviceBookingUser');
-          if (savedUser) {
-            setUser(JSON.parse(savedUser));
-          }
-        }
-      } catch (error) {
-        console.error('Session error:', error);
-        // Fallback to localStorage if Supabase fails
-        const savedUser = localStorage.getItem('serviceBookingUser');
-        if (savedUser) {
-          setUser(JSON.parse(savedUser));
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    checkSession();
-    
-    // Set up auth state change listener
+    // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (event === 'SIGNED_IN' && session) {
-          // Update the user state when signed in
+        setIsLoading(true);
+        if (session?.user) {
           const { data: profile } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
             .single();
-            
-          const userData: User = {
-            id: session.user.id,
-            email: session.user.email || '',
-            name: profile?.name || '',
-            role: profile?.role || 'user',
-            bio: profile?.bio || '',
-            phone: profile?.phone || '',
-            image: profile?.image || '',
-            address: profile?.address || '',
-            city: profile?.city || '',
-            state: profile?.state || '',
-            zipCode: profile?.zipCode || '',
-            createdAt: profile?.created_at || new Date().toISOString(),
-          };
-          
-          setUser(userData);
-        } else if (event === 'SIGNED_OUT') {
+
+          if (profile) {
+            setUser({
+              id: session.user.id,
+              email: session.user.email || '',
+              name: profile.name || '',
+              role: profile.role as UserRole || 'user',
+              bio: profile.bio || '',
+              phone: profile.phone || '',
+              image: profile.image || '',
+              address: profile.address || '',
+              city: profile.city || '',
+              state: profile.state || '',
+              zipCode: profile.zipcode || '',
+              createdAt: profile.created_at || new Date().toISOString(),
+            });
+          }
+        } else {
           setUser(null);
         }
+        setIsLoading(false);
       }
     );
-    
+
+    // Check initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        setIsLoading(false);
+        return;
+      }
+    });
+
     return () => {
       subscription.unsubscribe();
     };
@@ -168,37 +74,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      // Try Supabase authentication first
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
-        password
+        password,
       });
-      
-      if (error) {
-        // If Supabase auth fails, fall back to mock users (for development)
-        if (import.meta.env.DEV) {
-          // Simple mock authentication
-          const foundUser = MOCK_USERS.find(u => u.email === email);
-          
-          if (foundUser && password === 'password') {
-            setUser(foundUser);
-            localStorage.setItem('serviceBookingUser', JSON.stringify(foundUser));
-            toast({
-              title: "Login successful (MOCK)",
-              description: `Welcome back, ${foundUser.name}!`,
-            });
-            return;
-          }
-        }
-        throw new Error(error.message || 'Invalid email or password');
-      }
-      
-      if (data?.user) {
-        toast({
-          title: "Login successful",
-          description: "You have been logged in successfully.",
-        });
-      }
+
+      if (error) throw error;
+
+      toast({
+        title: "Login successful",
+        description: "Welcome back!",
+      });
     } catch (error: any) {
       toast({
         title: "Login failed",
@@ -214,68 +100,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const register = async (email: string, password: string, name: string, role: UserRole) => {
     setIsLoading(true);
     try {
-      // Register with Supabase
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             name,
             role,
-          }
-        }
+          },
+        },
       });
-      
-      if (error) {
-        // If Supabase registration fails, fall back to mock users (for development)
-        if (import.meta.env.DEV) {
-          // Check if email already exists
-          if (MOCK_USERS.some(u => u.email === email)) {
-            throw new Error('Email already in use');
-          }
-          
-          // Create new user
-          const newUser: User = {
-            id: `user-${Date.now()}`,
-            email,
-            name,
-            role,
-            createdAt: new Date().toISOString()
-          };
-          
-          setUser(newUser);
-          localStorage.setItem('serviceBookingUser', JSON.stringify(newUser));
-          
-          toast({
-            title: "Registration successful (MOCK)",
-            description: `Welcome, ${newUser.name}!`,
-          });
-          return;
-        }
-        throw new Error(error.message || 'Registration failed');
-      }
-      
-      if (data?.user) {
-        // Create a profile in the profiles table
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([
-            {
-              id: data.user.id,
-              name,
-              role,
-              email,
-              created_at: new Date().toISOString()
-            }
-          ]);
-          
-        if (profileError) throw new Error(profileError.message);
-        
-        toast({
-          title: "Registration successful",
-          description: `Welcome, ${name}!`,
-        });
-      }
+
+      if (error) throw error;
+
+      toast({
+        title: "Registration successful",
+        description: "Please check your email to verify your account.",
+      });
     } catch (error: any) {
       toast({
         title: "Registration failed",
@@ -290,23 +131,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     try {
-      // Sign out from Supabase
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      
-      // Clear local storage as well
-      localStorage.removeItem('serviceBookingUser');
-      setUser(null);
-      
+
       toast({
         title: "Logged out",
         description: "You have been successfully logged out.",
       });
-    } catch (error) {
-      console.error('Logout error:', error);
-      // Fallback: Clear local storage anyway
-      localStorage.removeItem('serviceBookingUser');
-      setUser(null);
+    } catch (error: any) {
+      toast({
+        title: "Logout failed",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -316,20 +153,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
-      
+
       if (error) throw error;
-      
+
       toast({
         title: "Reset link sent",
-        description: "If your email is in our system, you will receive a password reset link.",
+        description: "If an account exists with this email, you will receive a password reset link.",
       });
     } catch (error: any) {
-      // Still show success message for security reasons
       toast({
-        title: "Reset link sent",
-        description: "If your email is in our system, you will receive a password reset link.",
+        title: "Failed to send reset link",
+        description: error.message,
+        variant: "destructive",
       });
-      console.error('Password reset error:', error);
     } finally {
       setIsLoading(false);
     }
@@ -339,14 +175,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     try {
       const { error } = await supabase.auth.updateUser({
-        password: newPassword
+        password: newPassword,
       });
-      
+
       if (error) throw error;
-      
+
       toast({
-        title: "Password reset successful",
-        description: "Your password has been reset. You can now log in with your new password.",
+        title: "Password updated",
+        description: "Your password has been successfully reset.",
       });
     } catch (error: any) {
       toast({
@@ -363,11 +199,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const updateProfile = async (userData: Partial<User>) => {
     setIsLoading(true);
     try {
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-      
-      // Update the Supabase profile
+      if (!user?.id) throw new Error('User not authenticated');
+
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -378,34 +211,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           address: userData.address,
           city: userData.city,
           state: userData.state,
-          zipCode: userData.zipCode,
-          updated_at: new Date().toISOString()
+          zipcode: userData.zipCode,
+          updated_at: new Date().toISOString(),
         })
         .eq('id', user.id);
-      
-      if (error) {
-        // If Supabase update fails, fallback to local storage for development
-        if (import.meta.env.DEV) {
-          const updatedUser = { ...user, ...userData };
-          setUser(updatedUser);
-          localStorage.setItem('serviceBookingUser', JSON.stringify(updatedUser));
-          
-          toast({
-            title: "Profile updated (MOCK)",
-            description: "Your profile has been updated successfully.",
-          });
-          return;
-        }
-        throw error;
-      }
-      
-      // Update the local user state
-      const updatedUser = { ...user, ...userData };
-      setUser(updatedUser);
-      
+
+      if (error) throw error;
+
+      setUser(user => user ? { ...user, ...userData } : null);
+
       toast({
         title: "Profile updated",
-        description: "Your profile has been updated successfully.",
+        description: "Your profile has been successfully updated.",
       });
     } catch (error: any) {
       toast({

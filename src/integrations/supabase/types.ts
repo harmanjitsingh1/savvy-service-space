@@ -9,7 +9,132 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      bookings: {
+        Row: {
+          booking_date: string
+          created_at: string | null
+          duration: number
+          id: string
+          notes: string | null
+          provider_id: string
+          service_id: string
+          status: string | null
+          total_amount: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          booking_date: string
+          created_at?: string | null
+          duration: number
+          id?: string
+          notes?: string | null
+          provider_id: string
+          service_id: string
+          status?: string | null
+          total_amount: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          booking_date?: string
+          created_at?: string | null
+          duration?: number
+          id?: string
+          notes?: string | null
+          provider_id?: string
+          service_id?: string
+          status?: string | null
+          total_amount?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          address: string | null
+          bio: string | null
+          city: string | null
+          created_at: string | null
+          id: string
+          image: string | null
+          name: string | null
+          phone: string | null
+          role: string | null
+          state: string | null
+          updated_at: string | null
+          zipcode: string | null
+        }
+        Insert: {
+          address?: string | null
+          bio?: string | null
+          city?: string | null
+          created_at?: string | null
+          id: string
+          image?: string | null
+          name?: string | null
+          phone?: string | null
+          role?: string | null
+          state?: string | null
+          updated_at?: string | null
+          zipcode?: string | null
+        }
+        Update: {
+          address?: string | null
+          bio?: string | null
+          city?: string | null
+          created_at?: string | null
+          id?: string
+          image?: string | null
+          name?: string | null
+          phone?: string | null
+          role?: string | null
+          state?: string | null
+          updated_at?: string | null
+          zipcode?: string | null
+        }
+        Relationships: []
+      }
+      services: {
+        Row: {
+          category: string
+          created_at: string | null
+          description: string | null
+          duration: number
+          id: string
+          image: string | null
+          price: number
+          provider_id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          description?: string | null
+          duration: number
+          id?: string
+          image?: string | null
+          price: number
+          provider_id: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          duration?: number
+          id?: string
+          image?: string | null
+          price?: number
+          provider_id?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
