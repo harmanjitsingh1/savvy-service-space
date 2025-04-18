@@ -18,13 +18,22 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [role, setRole] = useState<UserRole>("user");
-  const [isLoading, setIsLoading] = useState(false);
-  const { register } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { register, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!name || !email || !password || !confirmPassword) {
+      toast({
+        title: "Missing fields",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     if (password !== confirmPassword) {
       toast({
@@ -35,25 +44,24 @@ export default function Register() {
       return;
     }
     
-    setIsLoading(true);
+    setIsSubmitting(true);
 
     try {
       await register(email, password, name, role);
       toast({
         title: "Registration Successful",
-        description: "Your account has been created successfully.",
+        description: "Your account has been created. You can now login.",
       });
-      navigate("/");
+      navigate("/login");
     } catch (error: any) {
-      toast({
-        title: "Registration Failed",
-        description: error.message || "An error occurred during registration. Please try again.",
-        variant: "destructive",
-      });
+      console.error("Registration submission error:", error);
+      // Error is already handled in the register function
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
+
+  const isLoading = isSubmitting || authLoading;
 
   return (
     <MainLayout>

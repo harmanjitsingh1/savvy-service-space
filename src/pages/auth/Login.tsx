@@ -13,32 +13,37 @@ import { Loader2 } from "lucide-react";
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { login, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    
+    if (!email || !password) {
+      toast({
+        title: "Missing fields",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsSubmitting(true);
 
     try {
       await login(email, password);
-      toast({
-        title: "Login Successful",
-        description: "You have been logged in successfully.",
-      });
-      navigate("/");
+      navigate("/dashboard");
     } catch (error: any) {
-      toast({
-        title: "Login Failed",
-        description: error.message || "An error occurred during login. Please try again.",
-        variant: "destructive",
-      });
+      console.error("Login submission error:", error);
+      // Error is already handled in the login function
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
+
+  const isLoading = isSubmitting || authLoading;
 
   return (
     <MainLayout>
