@@ -97,9 +97,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (profile) {
         console.log("Profile loaded:", profile);
+        // Fix: Get the email from the current session since it's not in the profile table
+        const { data: { session } } = await supabase.auth.getSession();
+        const email = session?.user?.email || '';
+        
         setUser({
           id: userId,
-          email: profile.email || '',
+          email: email, // Use email from session instead of profile
           name: profile.name || '',
           role: profile.role as UserRole || 'user',
           bio: profile.bio || '',
