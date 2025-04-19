@@ -26,52 +26,51 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log("Auth state changed:", event, session?.user?.id);
+        
         if (session?.user) {
-          try {
-            // Fetch the profile using the user id from the session
-            const { data: profile, error } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-              
-            if (error) {
-              console.error("Error fetching profile:", error);
-              setUser(null);
-            } else if (profile) {
-              console.log("Profile loaded:", profile);
-              setUser({
-                id: session.user.id,
-                email: session.user.email || '',
-                name: profile.name || '',
-                role: profile.role as UserRole || 'user',
-                bio: profile.bio || '',
-                phone: profile.phone || '',
-                image: profile.image || '',
-                address: profile.address || '',
-                city: profile.city || '',
-                state: profile.state || '',
-                zipCode: profile.zipcode || '',
-                createdAt: profile.created_at || new Date().toISOString(),
-              });
-            }
-          } catch (err) {
-            console.error("Error in auth state change handler:", err);
-            setUser(null);
-          }
+          // Only set basic user data here, don't make Supabase calls in this callback
+          setUser(prevUser => prevUser?.id === session.user?.id ? prevUser : {
+            id: session.user.id,
+            email: session.user.email || '',
+            name: '',
+            role: 'user',
+            bio: '',
+            phone: '',
+            image: '',
+            address: '',
+            city: '',
+            state: '',
+            zipCode: '',
+            createdAt: new Date().toISOString(),
+          });
+          
+          // Defer profile fetch outside the direct callback
+          setTimeout(() => {
+            fetchUserProfile(session.user.id);
+          }, 0);
         } else {
           setUser(null);
         }
+        
         setIsLoading(false);
       }
     );
 
     // Check initial session
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          // Directly fetch profile here since we're not in the auth state callback
+          await fetchUserProfile(session.user.id);
+        } else {
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error("Session check error:", error);
         setIsLoading(false);
       }
     };
@@ -82,6 +81,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       subscription.unsubscribe();
     };
   }, []);
+
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+        
+      if (error) {
+        console.error("Error fetching profile:", error);
+        return;
+      }
+      
+      if (profile) {
+        console.log("Profile loaded:", profile);
+        setUser({
+          id: userId,
+          email: profile.email || '',
+          name: profile.name || '',
+          role: profile.role as UserRole || 'user',
+          bio: profile.bio || '',
+          phone: profile.phone || '',
+          image: profile.image || '',
+          address: profile.address || '',
+          city: profile.city || '',
+          state: profile.state || '',
+          zipCode: profile.zipcode || '',
+          createdAt: profile.created_at || new Date().toISOString(),
+        });
+      }
+    } catch (err) {
+      console.error("Error in fetchUserProfile:", err);
+    }
+  };
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
@@ -100,11 +134,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         title: "Login successful",
         description: "Welcome back!",
       });
+      
+      // User profile will be loaded via onAuthStateChange
     } catch (error: any) {
       console.error("Login error:", error);
       toast({
         title: "Login failed",
-        description: error.message,
+        description: error.message || "Failed to login. Please check your credentials.",
         variant: "destructive",
       });
       throw error;
@@ -134,13 +170,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       toast({
         title: "Registration successful",
-        description: "Please check your email to verify your account.",
+        description: "Your account has been created. Please check your email to verify your account.",
       });
     } catch (error: any) {
       console.error("Registration error:", error);
       toast({
         title: "Registration failed",
-        description: error.message,
+        description: error.message || "Failed to create account.",
         variant: "destructive",
       });
       throw error;
@@ -150,11 +186,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
+    setIsLoading(true);
     try {
       console.log("Attempting logout");
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
 
+      setUser(null);
+      
       toast({
         title: "Logged out",
         description: "You have been successfully logged out.",
@@ -163,9 +202,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error("Logout error:", error);
       toast({
         title: "Logout failed",
-        description: error.message,
+        description: error.message || "Failed to log out.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -187,7 +228,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error("Password reset error:", error);
       toast({
         title: "Failed to send reset link",
-        description: error.message,
+        description: error.message || "Failed to send reset link.",
         variant: "destructive",
       });
     } finally {
@@ -213,7 +254,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error("Password update error:", error);
       toast({
         title: "Password reset failed",
-        description: error.message,
+        description: error.message || "Failed to reset password.",
         variant: "destructive",
       });
       throw error;
@@ -256,7 +297,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error("Profile update error:", error);
       toast({
         title: "Profile update failed",
-        description: error.message,
+        description: error.message || "Failed to update profile.",
         variant: "destructive",
       });
       throw error;

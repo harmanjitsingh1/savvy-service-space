@@ -47,6 +47,7 @@ export default function Register() {
     setIsSubmitting(true);
 
     try {
+      console.log("Registration attempt with:", { email, name, role });
       await register(email, password, name, role);
       toast({
         title: "Registration Successful",
@@ -54,7 +55,7 @@ export default function Register() {
       });
       navigate("/login");
     } catch (error: any) {
-      console.error("Registration submission error:", error);
+      console.error("Registration error in component:", error);
       // Error is already handled in the register function
     } finally {
       setIsSubmitting(false);

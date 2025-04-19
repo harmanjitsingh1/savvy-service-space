@@ -33,10 +33,12 @@ export default function Login() {
     setIsSubmitting(true);
 
     try {
+      console.log("Login attempt with:", { email });
       await login(email, password);
+      console.log("Login successful, navigating to dashboard");
       navigate("/dashboard");
     } catch (error: any) {
-      console.error("Login submission error:", error);
+      console.error("Login error in component:", error);
       // Error is already handled in the login function
     } finally {
       setIsSubmitting(false);
