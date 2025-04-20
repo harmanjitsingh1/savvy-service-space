@@ -2,6 +2,7 @@
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -21,7 +22,7 @@ export function BookingDialog({ service, trigger }: BookingDialogProps) {
     <Dialog>
       <DialogTrigger asChild>
         {trigger || (
-          <Button>
+          <Button className="w-full">
             <Calendar className="h-4 w-4 mr-2" /> Book Now
           </Button>
         )}
@@ -29,6 +30,9 @@ export function BookingDialog({ service, trigger }: BookingDialogProps) {
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Book Service</DialogTitle>
+          <DialogDescription>
+            Fill in the details to book this service.
+          </DialogDescription>
         </DialogHeader>
         <BookingForm service={service} />
       </DialogContent>

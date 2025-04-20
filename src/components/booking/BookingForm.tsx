@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -60,17 +61,26 @@ export function BookingForm({ service, onSuccess }: BookingFormProps) {
     bookingDateTime.setHours(parseInt(hours), parseInt(minutes));
 
     try {
+      // Make sure service ID, provider ID, and pricing data exist
+      if (!service.id || !service.providerId) {
+        throw new Error("Invalid service data");
+      }
+
       const { error } = await supabase.from("bookings").insert({
         service_id: service.id,
         provider_id: service.providerId,
         user_id: user.id,
         booking_date: bookingDateTime.toISOString(),
-        duration: service.duration,
-        total_amount: service.price * service.duration,
+        duration: service.duration || 1,
+        total_amount: service.price * (service.duration || 1),
         notes: data.notes,
+        status: "pending"
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Booking error:", error);
+        throw error;
+      }
 
       toast({
         title: "Booking confirmed!",
@@ -82,6 +92,7 @@ export function BookingForm({ service, onSuccess }: BookingFormProps) {
       }
       navigate("/dashboard");
     } catch (error) {
+      console.error("Error during booking:", error);
       toast({
         title: "Error",
         description: "Failed to book the service. Please try again.",
@@ -125,10 +136,12 @@ export function BookingForm({ service, onSuccess }: BookingFormProps) {
                   <Calendar
                     mode="single"
                     selected={field.value}
-                    onSelect={field.onChange}
+                    onSelect={(date) => {
+                      if (date) field.onChange(date);
+                    }}
                     disabled={(date) => date < new Date()}
                     initialFocus
-                    className={cn("p-3 pointer-events-auto")}
+                    className="p-3"
                   />
                 </PopoverContent>
               </Popover>

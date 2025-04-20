@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -103,6 +104,14 @@ export default function ServiceDetailsPage() {
           : "The service has been added to your saved list",
       });
     },
+    onError: (error) => {
+      console.error("Error toggling save:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save service. Please try again.",
+        variant: "destructive",
+      });
+    }
   });
 
   const handleBookNow = () => {
@@ -386,29 +395,31 @@ export default function ServiceDetailsPage() {
                 </div>
               </div>
               
-              <BookingDialog service={service} />
+              <div className="space-y-3">
+                <BookingDialog service={service} />
               
-              <div className="flex gap-3 mt-3">
-                <Button variant="outline" className="flex-1" onClick={handleContactProvider}>
-                  <MessageSquare className="h-4 w-4 mr-2" /> Message
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="flex-1" 
-                  onClick={handleSaveService}
-                >
-                  <Heart 
-                    className={cn(
-                      "h-4 w-4 mr-2",
-                      isSaved && "fill-primary text-primary"
-                    )} 
-                  /> 
-                  {isSaved ? "Saved" : "Save"}
-                </Button>
-              </div>
+                <div className="flex gap-3">
+                  <Button variant="outline" className="flex-1" onClick={handleContactProvider}>
+                    <MessageSquare className="h-4 w-4 mr-2" /> Message
+                  </Button>
+                  <Button 
+                    variant={isSaved ? "default" : "outline"}
+                    className="flex-1" 
+                    onClick={handleSaveService}
+                  >
+                    <Heart 
+                      className={cn(
+                        "h-4 w-4 mr-2",
+                        isSaved && "fill-white text-white"
+                      )} 
+                    /> 
+                    {isSaved ? "Saved" : "Save"}
+                  </Button>
+                </div>
               
-              <div className="mt-6 text-center">
-                <ShareDialog serviceId={serviceId} serviceTitle={service.title} />
+                <div className="mt-2">
+                  <ShareDialog serviceId={serviceId} serviceTitle={service.title} />
+                </div>
               </div>
             </div>
           </div>
