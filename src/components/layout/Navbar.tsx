@@ -56,6 +56,13 @@ export function Navbar() {
     }
   };
 
+  // Add the missing handleKeyPress function
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch(e);
+    }
+  };
+
   const handleSearchResultClick = (serviceId: string) => {
     navigate(`/services/${serviceId}`);
     setSearchQuery("");
