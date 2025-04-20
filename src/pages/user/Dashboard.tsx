@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -33,7 +32,6 @@ export default function DashboardPage() {
     queryFn: async () => {
       if (!user) return [];
       
-      // First, get the bookings
       const { data: bookingsData, error: bookingsError } = await supabase
         .from("bookings")
         .select('*')
@@ -42,7 +40,6 @@ export default function DashboardPage() {
 
       if (bookingsError) throw bookingsError;
       
-      // Then, for each booking, fetch the associated service
       const bookingsWithServices = await Promise.all(bookingsData.map(async (booking) => {
         const { data: service, error: serviceError } = await supabase
           .from("services")
@@ -121,6 +118,33 @@ export default function DashboardPage() {
   const getCancelledBookings = () => {
     return bookings?.filter((booking) => booking.status === "cancelled") || [];
   };
+
+  const { data: savedServices } = useQuery({
+    queryKey: ["savedServices", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      
+      const { data: savedData, error: savedError } = await supabase
+        .from("saved_services")
+        .select(`
+          service_id,
+          services (
+            id,
+            title,
+            description,
+            price,
+            duration,
+            category,
+            provider_id
+          )
+        `)
+        .eq("user_id", user.id);
+
+      if (savedError) throw savedError;
+      return savedData.map(item => item.services);
+    },
+    enabled: !!user,
+  });
 
   return (
     <MainLayout>
@@ -349,13 +373,41 @@ export default function DashboardPage() {
                     <CardDescription>Services you've saved for later</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-center py-10 text-muted-foreground">
-                      <p>No saved services</p>
-                      <Button variant="outline" className="mt-4" onClick={() => navigate('/services')}>
-                        <Heart className="h-4 w-4 mr-2" />
-                        Browse Services
-                      </Button>
-                    </div>
+                    {savedServices && savedServices.length > 0 ? (
+                      <div className="space-y-4">
+                        {savedServices.map((service) => (
+                          <div key={service.id} className="flex items-center justify-between p-4 border rounded-lg">
+                            <div>
+                              <h4 className="font-medium">{service.title}</h4>
+                              <p className="text-sm text-muted-foreground">{service.category}</p>
+                              <div className="flex items-center gap-2 mt-1 text-sm">
+                                <span className="flex items-center">
+                                  <IndianRupee className="h-3 w-3 mr-1" />
+                                  {service.price}
+                                </span>
+                                <span>•</span>
+                                <span>{service.duration} hour(s)</span>
+                              </div>
+                            </div>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => navigate(`/services/${service.id}`)}
+                            >
+                              View Details
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-10 text-muted-foreground">
+                        <p>No saved services</p>
+                        <Button variant="outline" className="mt-4" onClick={() => navigate('/services')}>
+                          <Heart className="h-4 w-4 mr-2" />
+                          Browse Services
+                        </Button>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>

@@ -33,6 +33,9 @@ import {
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { BookingDialog } from "@/components/booking/BookingDialog";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { ShareDialog } from "@/components/sharing/ShareDialog";
 
 export default function ServiceDetailsPage() {
   const { serviceId } = useParams<{ serviceId: string }>();
@@ -53,6 +56,53 @@ export default function ServiceDetailsPage() {
       setIsLoading(false);
     }
   }, [serviceId]);
+
+  const { data: isSaved, refetch: refetchSavedStatus } = useQuery({
+    queryKey: ["savedService", serviceId, user?.id],
+    queryFn: async () => {
+      if (!user || !serviceId) return false;
+      const { data } = await supabase
+        .from("saved_services")
+        .select()
+        .eq("user_id", user.id)
+        .eq("service_id", serviceId)
+        .single();
+      return !!data;
+    },
+    enabled: !!user && !!serviceId,
+  });
+
+  const toggleSave = useMutation({
+    mutationFn: async () => {
+      if (!user || !serviceId) throw new Error("User not authenticated");
+      
+      if (isSaved) {
+        const { error } = await supabase
+          .from("saved_services")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("service_id", serviceId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("saved_services")
+          .insert({
+            user_id: user.id,
+            service_id: serviceId,
+          });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      refetchSavedStatus();
+      toast({
+        title: isSaved ? "Service removed from saved" : "Service saved",
+        description: isSaved 
+          ? "The service has been removed from your saved list" 
+          : "The service has been added to your saved list",
+      });
+    },
+  });
 
   const handleBookNow = () => {
     if (!isAuthenticated) {
@@ -82,10 +132,7 @@ export default function ServiceDetailsPage() {
       });
       return;
     }
-    toast({
-      title: "Service saved",
-      description: "Service has been added to your saved list",
-    });
+    toggleSave.mutate();
   };
 
   const handleContactProvider = () => {
@@ -340,23 +387,27 @@ export default function ServiceDetailsPage() {
               
               <BookingDialog service={service} />
               
-              <Button className="w-full mb-3" onClick={handleBookNow}>
-                <Calendar className="h-4 w-4 mr-2" /> Book Now
-              </Button>
-              
-              <div className="flex gap-3">
+              <div className="flex gap-3 mt-3">
                 <Button variant="outline" className="flex-1" onClick={handleContactProvider}>
                   <MessageSquare className="h-4 w-4 mr-2" /> Message
                 </Button>
-                <Button variant="outline" className="flex-1" onClick={handleSaveService}>
-                  <Heart className="h-4 w-4 mr-2" /> Save
+                <Button 
+                  variant="outline" 
+                  className="flex-1" 
+                  onClick={handleSaveService}
+                >
+                  <Heart 
+                    className={cn(
+                      "h-4 w-4 mr-2",
+                      isSaved && "fill-primary text-primary"
+                    )} 
+                  /> 
+                  {isSaved ? "Saved" : "Save"}
                 </Button>
               </div>
               
               <div className="mt-6 text-center">
-                <Button variant="ghost" size="sm" className="text-muted-foreground">
-                  <Share2 className="h-4 w-4 mr-2" /> Share
-                </Button>
+                <ShareDialog serviceId={serviceId} serviceTitle={service.title} />
               </div>
             </div>
           </div>
