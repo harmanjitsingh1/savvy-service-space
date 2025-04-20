@@ -36,6 +36,7 @@ import { BookingDialog } from "@/components/booking/BookingDialog";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ShareDialog } from "@/components/sharing/ShareDialog";
+import { cn } from "@/lib/utils";
 
 export default function ServiceDetailsPage() {
   const { serviceId } = useParams<{ serviceId: string }>();
