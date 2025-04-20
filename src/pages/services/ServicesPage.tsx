@@ -28,38 +28,45 @@ export default function ServicesPage() {
   const [sortBy, setSortBy] = useState<string>("relevance");
   const [filteredServices, setFilteredServices] = useState<Service[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Apply filters and update results
   useEffect(() => {
-    const params: any = {};
-    if (searchQuery) params.searchTerm = searchQuery;
-    if (selectedCategory) params.category = selectedCategory;
-    if (location) params.location = location;
-    if (priceRange[0] > 0) params.minPrice = priceRange[0];
-    if (priceRange[1] < 200) params.maxPrice = priceRange[1];
-    if (minRating > 0) params.minRating = minRating;
+    const fetchFilteredServices = async () => {
+      setIsLoading(true);
+      
+      const params: any = {};
+      if (searchQuery) params.searchTerm = searchQuery;
+      if (selectedCategory) params.category = selectedCategory;
+      if (location) params.location = location;
+      if (priceRange[0] > 0) params.minPrice = priceRange[0];
+      if (priceRange[1] < 200) params.maxPrice = priceRange[1];
+      if (minRating > 0) params.minRating = minRating;
 
-    // Get filtered results
-    let results = filterServices(params);
+      try {
+        await new Promise(resolve => setTimeout(resolve, 300));
+        let results = filterServices(params);
 
-    // Apply sorting
-    switch (sortBy) {
-      case "price_low":
-        results = [...results].sort((a, b) => a.price - b.price);
-        break;
-      case "price_high":
-        results = [...results].sort((a, b) => b.price - a.price);
-        break;
-      case "rating":
-        results = [...results].sort((a, b) => b.rating - a.rating);
-        break;
-      // For 'relevance', keep the default order
-    }
+        switch (sortBy) {
+          case "price_low":
+            results = [...results].sort((a, b) => a.price - b.price);
+            break;
+          case "price_high":
+            results = [...results].sort((a, b) => b.price - a.price);
+            break;
+          case "rating":
+            results = [...results].sort((a, b) => b.rating - a.rating);
+            break;
+        }
 
-    setFilteredServices(results);
+        setFilteredServices(results);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchFilteredServices();
   }, [searchQuery, selectedCategory, location, priceRange, minRating, sortBy]);
 
-  // Update URL when search params change
   useEffect(() => {
     const params = new URLSearchParams();
     if (searchQuery) params.set("search", searchQuery);
@@ -67,13 +74,10 @@ export default function ServicesPage() {
     setSearchParams(params, { replace: true });
   }, [searchQuery, selectedCategory, setSearchParams]);
 
-  // Handle search form submission
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // The searchQuery state and effect will handle the filtering
   };
 
-  // Reset all filters
   const handleReset = () => {
     setSearchQuery("");
     setSelectedCategory("");
@@ -88,7 +92,6 @@ export default function ServicesPage() {
     <MainLayout>
       <div className="container py-8">
         <div className="flex flex-col md:flex-row justify-between items-start gap-6">
-          {/* Filters sidebar for desktop */}
           <aside className={`md:block ${isFilterOpen ? 'block' : 'hidden'} w-full md:w-64 shrink-0 bg-background p-4 rounded-lg border`}>
             <div className="flex justify-between items-center mb-6">
               <h2 className="font-semibold flex items-center">
@@ -104,7 +107,6 @@ export default function ServicesPage() {
             </div>
 
             <div className="space-y-6">
-              {/* Category filter */}
               <div>
                 <Label className="mb-2 block">Category</Label>
                 <Select value={selectedCategory} onValueChange={setSelectedCategory}>
@@ -122,7 +124,6 @@ export default function ServicesPage() {
                 </Select>
               </div>
 
-              {/* Location filter */}
               <div>
                 <Label htmlFor="location" className="mb-2 block">Location</Label>
                 <Input
@@ -133,7 +134,6 @@ export default function ServicesPage() {
                 />
               </div>
 
-              {/* Price range filter */}
               <div>
                 <div className="flex justify-between mb-2">
                   <Label>Price Range ($/hr)</Label>
@@ -151,7 +151,6 @@ export default function ServicesPage() {
                 />
               </div>
 
-              {/* Rating filter */}
               <div>
                 <Label className="mb-2 block">Minimum Rating</Label>
                 <div className="space-y-2">
@@ -172,9 +171,7 @@ export default function ServicesPage() {
             </div>
           </aside>
 
-          {/* Main content */}
           <div className="flex-1">
-            {/* Search and sort header */}
             <div className="mb-6">
               <div className="flex flex-col md:flex-row gap-4 mb-4">
                 <form onSubmit={handleSearch} className="flex-1 relative">
@@ -212,7 +209,6 @@ export default function ServicesPage() {
                 </div>
               </div>
               
-              {/* Active filters */}
               <div className="flex flex-wrap gap-2">
                 {selectedCategory && (
                   <Button
@@ -257,8 +253,12 @@ export default function ServicesPage() {
               </div>
             </div>
 
-            {/* Search results */}
-            {filteredServices.length > 0 ? (
+            {isLoading ? (
+              <div className="text-center py-12">
+                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
+                <p className="mt-4 text-muted-foreground">Loading services...</p>
+              </div>
+            ) : filteredServices.length > 0 ? (
               <div>
                 <p className="text-muted-foreground mb-4">
                   Showing {filteredServices.length} services

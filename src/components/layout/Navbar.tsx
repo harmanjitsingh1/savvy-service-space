@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +16,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Menu, Search, Bell, MessageSquare, User, LogOut, ChevronDown } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
 import { SERVICES } from "@/services/mockData";
+import { useOnClickOutside } from "@/hooks/use-click-outside";
 
 export function Navbar() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -23,6 +24,12 @@ export function Navbar() {
   const [showSearchResults, setShowSearchResults] = useState(false);
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  // Close search results when clicking outside
+  useOnClickOutside(searchRef, () => {
+    setShowSearchResults(false);
+  });
 
   // Handle search functionality
   useEffect(() => {
@@ -45,12 +52,7 @@ export function Navbar() {
     if (searchQuery.trim()) {
       navigate(`/services?search=${encodeURIComponent(searchQuery)}`);
       setShowSearchResults(false);
-    }
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      handleSearch(e);
+      setSearchQuery("");
     }
   };
 

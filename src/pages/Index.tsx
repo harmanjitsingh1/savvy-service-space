@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -24,6 +23,7 @@ export default function Index() {
     e.preventDefault();
     if (searchQuery.trim()) {
       navigate(`/services?search=${encodeURIComponent(searchQuery)}`);
+      setSearchQuery("");
     }
   };
 
@@ -55,6 +55,7 @@ export default function Index() {
             </Button>
           </form>
           
+          {/* Popular categories section */}
           <div className="flex flex-wrap justify-center gap-2 mt-4">
             <p className="text-sm text-white/90 mr-2">Popular:</p>
             {CATEGORIES.slice(0, 5).map(category => (
