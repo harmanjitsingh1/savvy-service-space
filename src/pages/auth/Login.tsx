@@ -14,7 +14,7 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { login, isLoading: authLoading } = useAuth();
+  const { login } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -45,8 +45,6 @@ export default function Login() {
     }
   };
 
-  const isLoading = isSubmitting || authLoading;
-
   return (
     <MainLayout>
       <div className="container max-w-lg py-12">
@@ -68,7 +66,7 @@ export default function Login() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  disabled={isLoading}
+                  disabled={isSubmitting}
                 />
               </div>
               <div className="space-y-2">
@@ -87,13 +85,13 @@ export default function Login() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  disabled={isLoading}
+                  disabled={isSubmitting}
                 />
               </div>
             </CardContent>
             <CardFooter className="flex flex-col">
-              <Button className="w-full mb-4" type="submit" disabled={isLoading}>
-                {isLoading ? (
+              <Button className="w-full mb-4" type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Please wait
                   </>

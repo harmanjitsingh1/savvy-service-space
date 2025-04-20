@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, UserRole } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
@@ -116,13 +115,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           createdAt: profile.created_at || new Date().toISOString(),
         });
       }
+      
+      setIsLoading(false);
     } catch (err) {
       console.error("Error in fetchUserProfile:", err);
+      setIsLoading(false);
     }
   };
 
   const login = async (email: string, password: string) => {
-    setIsLoading(true);
     try {
       console.log("Attempting login with:", email);
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -148,13 +149,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         variant: "destructive",
       });
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const register = async (email: string, password: string, name: string, role: UserRole) => {
-    setIsLoading(true);
     try {
       console.log("Attempting registration with:", { email, name, role });
       const { data, error } = await supabase.auth.signUp({
@@ -184,8 +182,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         variant: "destructive",
       });
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   };
 

@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,16 +15,36 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { Menu, Search, Bell, MessageSquare, User, LogOut, ChevronDown } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
+import { SERVICES } from "@/services/mockData";
 
 export function Navbar() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
+
+  // Handle search functionality
+  useEffect(() => {
+    if (searchQuery.trim().length > 1) {
+      const filteredResults = SERVICES.filter(service => 
+        service.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        service.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        service.category.toLowerCase().includes(searchQuery.toLowerCase())
+      ).slice(0, 5); // Limit to 5 results
+      setSearchResults(filteredResults);
+      setShowSearchResults(true);
+    } else {
+      setSearchResults([]);
+      setShowSearchResults(false);
+    }
+  }, [searchQuery]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
       navigate(`/services?search=${encodeURIComponent(searchQuery)}`);
+      setShowSearchResults(false);
     }
   };
 
@@ -31,6 +52,18 @@ export function Navbar() {
     if (e.key === "Enter") {
       handleSearch(e);
     }
+  };
+
+  const handleSearchResultClick = (serviceId: string) => {
+    navigate(`/services/${serviceId}`);
+    setSearchQuery("");
+    setShowSearchResults(false);
+  };
+
+  const handleClickOutside = () => {
+    setTimeout(() => {
+      setShowSearchResults(false);
+    }, 200);
   };
 
   return (
@@ -80,7 +113,34 @@ export function Navbar() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyPress={handleKeyPress}
+              onBlur={handleClickOutside}
             />
+            {showSearchResults && searchResults.length > 0 && (
+              <div className="absolute w-full mt-1 bg-background border rounded-md shadow-lg z-50">
+                {searchResults.map((service) => (
+                  <div 
+                    key={service.id}
+                    className="p-2 hover:bg-muted cursor-pointer flex items-center"
+                    onClick={() => handleSearchResultClick(service.id)}
+                  >
+                    <div className="h-10 w-10 mr-3 rounded overflow-hidden bg-muted flex-shrink-0">
+                      <img 
+                        src={service.images?.[0] || "/placeholder.svg"} 
+                        alt="" 
+                        className="h-full w-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "/placeholder.svg";
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <div className="font-medium">{service.title}</div>
+                      <div className="text-xs text-muted-foreground">{service.category}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </form>
         </div>
 
@@ -104,7 +164,7 @@ export function Navbar() {
                   <Button variant="ghost" className="flex items-center gap-2 px-2">
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={user.image} alt={user.name} />
-                      <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                      <AvatarFallback>{user.name?.charAt(0) || 'U'}</AvatarFallback>
                     </Avatar>
                     <div className="hidden md:flex flex-col items-start">
                       <span className="text-sm font-medium">{user.name}</span>
@@ -159,6 +219,32 @@ export function Navbar() {
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyPress={handleKeyPress}
           />
+          {showSearchResults && searchResults.length > 0 && (
+            <div className="absolute w-full mt-1 bg-background border rounded-md shadow-lg z-50">
+              {searchResults.map((service) => (
+                <div 
+                  key={service.id}
+                  className="p-2 hover:bg-muted cursor-pointer flex items-center"
+                  onClick={() => handleSearchResultClick(service.id)}
+                >
+                  <div className="h-10 w-10 mr-3 rounded overflow-hidden bg-muted flex-shrink-0">
+                    <img 
+                      src={service.images?.[0] || "/placeholder.svg"} 
+                      alt="" 
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = "/placeholder.svg";
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <div className="font-medium">{service.title}</div>
+                    <div className="text-xs text-muted-foreground">{service.category}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </form>
       </div>
     </header>

@@ -13,14 +13,23 @@ interface ServiceCardProps {
 }
 
 export function ServiceCard({ service, className }: ServiceCardProps) {
+  // Ensure we have a valid service ID to navigate to
+  if (!service || !service.id) {
+    console.error("Invalid service data", service);
+    return null;
+  }
+
   return (
-    <Link to={`/services/${service.id}`}>
+    <Link to={`/services/${service.id}`} className="block">
       <Card className={cn("overflow-hidden hover:shadow-md transition-shadow", className)}>
         <div className="relative h-48 w-full overflow-hidden bg-muted">
           <img 
-            src={service.images[0]} 
+            src={service.images?.[0] || "/placeholder.svg"} 
             alt={service.title}
             className="h-full w-full object-cover transition-transform hover:scale-105"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = "/placeholder.svg";
+            }}
           />
           <Badge className="absolute top-2 right-2">
             ${service.price}/hr
@@ -45,8 +54,8 @@ export function ServiceCard({ service, className }: ServiceCardProps) {
         <CardFooter className="p-4 pt-0 flex items-center justify-between">
           <div className="flex items-center">
             <Avatar className="h-7 w-7 mr-2">
-              <AvatarImage src={service.providerImage} />
-              <AvatarFallback>{service.providerName.substring(0, 2)}</AvatarFallback>
+              <AvatarImage src={service.providerImage || "/placeholder.svg"} />
+              <AvatarFallback>{service.providerName ? service.providerName.substring(0, 2) : "NA"}</AvatarFallback>
             </Avatar>
             <span className="text-sm font-medium">{service.providerName}</span>
           </div>

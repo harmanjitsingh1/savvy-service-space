@@ -19,7 +19,7 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [role, setRole] = useState<UserRole>("user");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { register, isLoading: authLoading } = useAuth();
+  const { register } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -62,8 +62,6 @@ export default function Register() {
     }
   };
 
-  const isLoading = isSubmitting || authLoading;
-
   return (
     <MainLayout>
       <div className="container max-w-lg py-12">
@@ -84,7 +82,7 @@ export default function Register() {
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  disabled={isLoading}
+                  disabled={isSubmitting}
                 />
               </div>
               <div className="space-y-2">
@@ -96,7 +94,7 @@ export default function Register() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  disabled={isLoading}
+                  disabled={isSubmitting}
                 />
               </div>
               <div className="space-y-2">
@@ -107,7 +105,7 @@ export default function Register() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  disabled={isLoading}
+                  disabled={isSubmitting}
                 />
               </div>
               <div className="space-y-2">
@@ -118,7 +116,7 @@ export default function Register() {
                   required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  disabled={isLoading}
+                  disabled={isSubmitting}
                 />
               </div>
               <div className="space-y-2">
@@ -140,8 +138,8 @@ export default function Register() {
               </div>
             </CardContent>
             <CardFooter className="flex flex-col">
-              <Button className="w-full mb-4" type="submit" disabled={isLoading}>
-                {isLoading ? (
+              <Button className="w-full mb-4" type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Please wait
                   </>
