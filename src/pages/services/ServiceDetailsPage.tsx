@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -30,8 +29,10 @@ import {
   Phone,
   Mail,
   ExternalLink,
+  IndianRupee,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { BookingDialog } from "@/components/booking/BookingDialog";
 
 export default function ServiceDetailsPage() {
   const { serviceId } = useParams<{ serviceId: string }>();
@@ -132,7 +133,6 @@ export default function ServiceDetailsPage() {
   return (
     <MainLayout>
       <div className="container py-8">
-        {/* Breadcrumb */}
         <div className="flex items-center mb-6 text-sm">
           <Link to="/" className="text-muted-foreground hover:text-primary">Home</Link>
           <span className="mx-2 text-muted-foreground">/</span>
@@ -146,7 +146,6 @@ export default function ServiceDetailsPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main content - left column */}
           <div className="lg:col-span-2">
             <h1 className="text-2xl md:text-3xl font-bold mb-4">{service.title}</h1>
             
@@ -167,7 +166,6 @@ export default function ServiceDetailsPage() {
               </div>
             </div>
 
-            {/* Image carousel */}
             <Carousel className="mb-8">
               <CarouselContent>
                 {service.images.map((image, index) => (
@@ -186,7 +184,6 @@ export default function ServiceDetailsPage() {
               <CarouselNext className="right-2" />
             </Carousel>
 
-            {/* Service details tabs */}
             <Tabs defaultValue="description" className="mb-8">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="description">Description</TabsTrigger>
@@ -213,11 +210,11 @@ export default function ServiceDetailsPage() {
                   
                   <div className="flex items-center">
                     <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center mr-4">
-                      <DollarSign className="h-5 w-5 text-primary" />
+                      <IndianRupee className="h-5 w-5 text-primary" />
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Price</p>
-                      <p className="font-medium">${service.price}/hr</p>
+                      <p className="font-medium">₹{service.price}/hr</p>
                     </div>
                   </div>
                 </div>
@@ -315,7 +312,6 @@ export default function ServiceDetailsPage() {
             </Tabs>
           </div>
 
-          {/* Sidebar - right column */}
           <div>
             <div className="bg-background rounded-lg border p-6 sticky top-24">
               <h3 className="text-lg font-bold mb-4">Book This Service</h3>
@@ -323,7 +319,10 @@ export default function ServiceDetailsPage() {
               <div className="space-y-4 mb-6">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Price per hour</span>
-                  <span className="font-medium">${service.price}</span>
+                  <span className="font-medium flex items-center">
+                    <IndianRupee className="h-3 w-3 mr-1" />
+                    {service.price}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Estimated duration</span>
@@ -332,9 +331,14 @@ export default function ServiceDetailsPage() {
                 <Separator />
                 <div className="flex justify-between">
                   <span>Total estimate</span>
-                  <span className="font-bold">${service.price * service.duration}</span>
+                  <span className="font-bold flex items-center">
+                    <IndianRupee className="h-3 w-3 mr-1" />
+                    {service.price * service.duration}
+                  </span>
                 </div>
               </div>
+              
+              <BookingDialog service={service} />
               
               <Button className="w-full mb-3" onClick={handleBookNow}>
                 <Calendar className="h-4 w-4 mr-2" /> Book Now

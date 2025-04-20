@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,15 +15,93 @@ import {
   PlusCircle,
   ArrowRight 
 } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
+import { useToast } from "@/components/ui/use-toast";
+import { IndianRupee } from "lucide-react";
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const { toast } = useToast();
+
+  const { data: bookings, refetch } = useQuery({
+    queryKey: ["bookings", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from("bookings")
+        .select(`
+          *,
+          services (
+            title,
+            price,
+            duration,
+            category
+          )
+        `)
+        .eq("user_id", user.id)
+        .order("booking_date", { ascending: true });
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const updateBookingStatus = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const { error } = await supabase
+        .from("bookings")
+        .update({ status })
+        .eq("id", id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      refetch();
+      toast({
+        title: "Success",
+        description: "Booking status updated successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update booking status",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleCancelBooking = (id: string) => {
+    updateBookingStatus.mutate({ id, status: "cancelled" });
+  };
+
+  const getUpcomingBookings = () => {
+    return bookings?.filter(
+      (booking) => 
+        new Date(booking.booking_date) > new Date() && 
+        booking.status !== "cancelled"
+    ) || [];
+  };
+
+  const getPastBookings = () => {
+    return bookings?.filter(
+      (booking) => 
+        new Date(booking.booking_date) < new Date() && 
+        booking.status !== "cancelled"
+    ) || [];
+  };
+
+  const getCancelledBookings = () => {
+    return bookings?.filter((booking) => booking.status === "cancelled") || [];
+  };
 
   return (
     <MainLayout>
       <div className="container py-8">
         <div className="flex flex-col md:flex-row gap-6">
-          {/* Sidebar */}
           <Card className="w-full md:w-64 h-fit shrink-0">
             <CardHeader>
               <CardTitle className="text-xl">Dashboard</CardTitle>
@@ -66,7 +143,6 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Main Content */}
           <div className="flex-1">
             <Tabs defaultValue="bookings" className="w-full">
               <div className="hidden">
@@ -78,7 +154,6 @@ export default function DashboardPage() {
                 </TabsList>
               </div>
 
-              {/* Bookings Tab */}
               <TabsContent value="bookings" className="mt-0">
                 <Card>
                   <CardHeader>
@@ -94,35 +169,50 @@ export default function DashboardPage() {
                       </TabsList>
                       
                       <TabsContent value="upcoming" className="pt-4">
-                        <div className="rounded-lg border shadow-sm">
-                          <div className="p-6">
-                            <div className="flex items-center justify-between mb-4">
-                              <div>
-                                <h3 className="font-semibold text-lg">House Cleaning</h3>
-                                <p className="text-sm text-muted-foreground">Scheduled for April 20, 2025</p>
+                        {getUpcomingBookings().map((booking) => (
+                          <div key={booking.id} className="rounded-lg border shadow-sm mb-4">
+                            <div className="p-6">
+                              <div className="flex items-center justify-between mb-4">
+                                <div>
+                                  <h3 className="font-semibold text-lg">{booking.services.title}</h3>
+                                  <p className="text-sm text-muted-foreground">
+                                    Scheduled for {format(new Date(booking.booking_date), "PPP 'at' p")}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => navigate(`/booking/${booking.id}/reschedule`)}
+                                  >
+                                    <Clock className="h-3 w-3 mr-1" />
+                                    Reschedule
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => handleCancelBooking(booking.id)}
+                                  >
+                                    <XCircle className="h-3 w-3 mr-1" />
+                                    Cancel
+                                  </Button>
+                                </div>
                               </div>
-                              <div className="flex items-center gap-2">
-                                <Button variant="outline" size="sm">
-                                  <Clock className="h-3 w-3 mr-1" />
-                                  Reschedule
-                                </Button>
-                                <Button variant="outline" size="sm">
-                                  <XCircle className="h-3 w-3 mr-1" />
-                                  Cancel
-                                </Button>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-4 text-sm">
-                              <div className="flex items-center">
-                                <Clock className="h-3 w-3 mr-1 text-muted-foreground" />
-                                <span>10:00 AM - 12:00 PM</span>
-                              </div>
-                              <div>
-                                <span className="text-primary font-medium">$80.00</span>
+                              <div className="flex items-center gap-4 text-sm">
+                                <div className="flex items-center">
+                                  <Clock className="h-3 w-3 mr-1 text-muted-foreground" />
+                                  <span>{booking.services.duration} hour(s)</span>
+                                </div>
+                                <div>
+                                  <span className="text-primary font-medium flex items-center">
+                                    <IndianRupee className="h-3 w-3 mr-1" />
+                                    {booking.total_amount}
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
+                        ))}
                         
                         <div className="mt-4 text-center">
                           <Button variant="outline">
@@ -133,42 +223,75 @@ export default function DashboardPage() {
                       </TabsContent>
                       
                       <TabsContent value="past" className="pt-4">
-                        <div className="rounded-lg border shadow-sm">
-                          <div className="p-6">
-                            <div className="flex items-center justify-between mb-4">
-                              <div>
-                                <h3 className="font-semibold text-lg">Plumbing Repair</h3>
-                                <p className="text-sm text-muted-foreground">Completed on March 15, 2025</p>
+                        {getPastBookings().map((booking) => (
+                          <div key={booking.id} className="rounded-lg border shadow-sm mb-4">
+                            <div className="p-6">
+                              <div className="flex items-center justify-between mb-4">
+                                <div>
+                                  <h3 className="font-semibold text-lg">{booking.services.title}</h3>
+                                  <p className="text-sm text-muted-foreground">
+                                    Completed on {format(new Date(booking.booking_date), "PPP")}
+                                  </p>
+                                </div>
+                                <Button variant="outline" size="sm">
+                                  <CheckCircle className="h-3 w-3 mr-1" />
+                                  Leave Review
+                                </Button>
                               </div>
-                              <Button variant="outline" size="sm">
-                                <CheckCircle className="h-3 w-3 mr-1" />
-                                Leave Review
-                              </Button>
-                            </div>
-                            <div className="flex items-center gap-4 text-sm">
-                              <div className="flex items-center">
-                                <Clock className="h-3 w-3 mr-1 text-muted-foreground" />
-                                <span>2:00 PM - 4:00 PM</span>
-                              </div>
-                              <div>
-                                <span className="text-primary font-medium">$120.00</span>
+                              <div className="flex items-center gap-4 text-sm">
+                                <div className="flex items-center">
+                                  <Clock className="h-3 w-3 mr-1 text-muted-foreground" />
+                                  <span>{booking.services.duration} hour(s)</span>
+                                </div>
+                                <div>
+                                  <span className="text-primary font-medium flex items-center">
+                                    <IndianRupee className="h-3 w-3 mr-1" />
+                                    {booking.total_amount}
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
+                        ))}
                       </TabsContent>
                       
                       <TabsContent value="cancelled" className="pt-4">
-                        <div className="text-center py-10 text-muted-foreground">
-                          <p>No cancelled bookings</p>
-                        </div>
+                        {getCancelledBookings().length === 0 ? (
+                          <div className="text-center py-10 text-muted-foreground">
+                            <p>No cancelled bookings</p>
+                          </div>
+                        ) : (
+                          getCancelledBookings().map((booking) => (
+                            <div key={booking.id} className="rounded-lg border shadow-sm mb-4">
+                              <div className="p-6">
+                                <div>
+                                  <h3 className="font-semibold text-lg">{booking.services.title}</h3>
+                                  <p className="text-sm text-muted-foreground">
+                                    Was scheduled for {format(new Date(booking.booking_date), "PPP")}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-4 text-sm mt-4">
+                                  <div className="flex items-center">
+                                    <Clock className="h-3 w-3 mr-1 text-muted-foreground" />
+                                    <span>{booking.services.duration} hour(s)</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-primary font-medium flex items-center">
+                                      <IndianRupee className="h-3 w-3 mr-1" />
+                                      {booking.total_amount}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        )}
                       </TabsContent>
                     </Tabs>
                   </CardContent>
                 </Card>
               </TabsContent>
 
-              {/* Messages Tab */}
               <TabsContent value="messages" className="mt-0">
                 <Card>
                   <CardHeader>
@@ -183,7 +306,6 @@ export default function DashboardPage() {
                 </Card>
               </TabsContent>
 
-              {/* Saved Services Tab */}
               <TabsContent value="saved" className="mt-0">
                 <Card>
                   <CardHeader>
@@ -202,7 +324,6 @@ export default function DashboardPage() {
                 </Card>
               </TabsContent>
 
-              {/* Settings Tab */}
               <TabsContent value="settings" className="mt-0">
                 <Card>
                   <CardHeader>
