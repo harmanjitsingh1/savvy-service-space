@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,7 @@ import { Service } from "@/types";
 export default function ServicesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
-  const [selectedCategory, setSelectedCategory] = useState(searchParams.get("category") || "");
+  const [selectedCategory, setSelectedCategory] = useState(searchParams.get("category") || "all");
   const [location, setLocation] = useState("");
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 200]);
   const [minRating, setMinRating] = useState<number>(0);
@@ -36,7 +37,7 @@ export default function ServicesPage() {
       
       const params: any = {};
       if (searchQuery) params.searchTerm = searchQuery;
-      if (selectedCategory) params.category = selectedCategory;
+      if (selectedCategory && selectedCategory !== "all") params.category = selectedCategory;
       if (location) params.location = location;
       if (priceRange[0] > 0) params.minPrice = priceRange[0];
       if (priceRange[1] < 200) params.maxPrice = priceRange[1];
@@ -70,7 +71,7 @@ export default function ServicesPage() {
   useEffect(() => {
     const params = new URLSearchParams();
     if (searchQuery) params.set("search", searchQuery);
-    if (selectedCategory) params.set("category", selectedCategory);
+    if (selectedCategory && selectedCategory !== "all") params.set("category", selectedCategory);
     setSearchParams(params, { replace: true });
   }, [searchQuery, selectedCategory, setSearchParams]);
 
@@ -80,7 +81,7 @@ export default function ServicesPage() {
 
   const handleReset = () => {
     setSearchQuery("");
-    setSelectedCategory("");
+    setSelectedCategory("all");
     setLocation("");
     setPriceRange([0, 200]);
     setMinRating(0);
@@ -114,7 +115,7 @@ export default function ServicesPage() {
                     <SelectValue placeholder="All Categories" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Categories</SelectItem>
+                    <SelectItem value="all">All Categories</SelectItem>
                     {CATEGORIES.map((category) => (
                       <SelectItem key={category.id} value={category.name}>
                         {category.name}
