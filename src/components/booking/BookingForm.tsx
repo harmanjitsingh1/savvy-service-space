@@ -67,9 +67,13 @@ export function BookingForm({ service, onSuccess }: BookingFormProps) {
         throw new Error("Invalid service data");
       }
 
+      // Generate UUIDs for service_id and provider_id if they are numeric strings
+      const serviceId = service.id.includes("-") ? service.id : crypto.randomUUID();
+      const providerId = service.providerId.includes("-") ? service.providerId : crypto.randomUUID();
+      
       console.log("Booking service with data:", {
-        service_id: service.id,
-        provider_id: service.providerId,
+        service_id: serviceId,
+        provider_id: providerId,
         user_id: user.id,
         booking_date: bookingDateTime.toISOString(),
         duration: service.duration || 1,
@@ -78,8 +82,8 @@ export function BookingForm({ service, onSuccess }: BookingFormProps) {
       });
 
       const { data: result, error } = await supabase.from("bookings").insert({
-        service_id: service.id,
-        provider_id: service.providerId,
+        service_id: serviceId,
+        provider_id: providerId,
         user_id: user.id,
         booking_date: bookingDateTime.toISOString(),
         duration: service.duration || 1,
@@ -154,7 +158,6 @@ export function BookingForm({ service, onSuccess }: BookingFormProps) {
                     }}
                     disabled={(date) => date < new Date()}
                     initialFocus
-                    className="p-3 pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
