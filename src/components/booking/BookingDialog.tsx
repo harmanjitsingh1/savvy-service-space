@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Service } from "@/types";
 import { BookingForm } from "./BookingForm";
 import { Calendar } from "lucide-react";
+import { useState } from "react";
 
 interface BookingDialogProps {
   service: Service;
@@ -18,8 +19,14 @@ interface BookingDialogProps {
 }
 
 export function BookingDialog({ service, trigger }: BookingDialogProps) {
+  const [open, setOpen] = useState(false);
+
+  const handleBookingSuccess = () => {
+    setOpen(false);
+  };
+
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || (
           <Button className="w-full">
@@ -34,7 +41,7 @@ export function BookingDialog({ service, trigger }: BookingDialogProps) {
             Fill in the details to book this service.
           </DialogDescription>
         </DialogHeader>
-        <BookingForm service={service} />
+        <BookingForm service={service} onSuccess={handleBookingSuccess} />
       </DialogContent>
     </Dialog>
   );
