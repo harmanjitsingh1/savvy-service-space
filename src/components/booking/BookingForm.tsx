@@ -66,9 +66,8 @@ export function BookingForm({ service, onSuccess }: BookingFormProps) {
         console.error("Missing service data:", service);
         throw new Error("Invalid service data");
       }
-
-      // Ensure we're using valid UUIDs - try to use the original IDs first
-      // If they don't have dashes (not a UUID format), leave them as is - the database will handle them
+      
+      // IDs are now properly formatted before reaching this component
       const serviceId = service.id;
       const providerId = service.providerId;
       
