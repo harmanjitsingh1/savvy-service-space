@@ -59,17 +59,25 @@ export default function ServiceDetailsPage() {
     }
   }, [serviceId]);
 
+  // Make sure serviceId is treated as a string, not a number
   const { data: isSaved, refetch: refetchSavedStatus } = useQuery({
     queryKey: ["savedService", serviceId, user?.id],
     queryFn: async () => {
       if (!user || !serviceId) return false;
-      const { data } = await supabase
+      
+      console.log("Checking if service is saved:", { serviceId, userId: user.id });
+      const { data, error } = await supabase
         .from("saved_services")
         .select()
         .eq("user_id", user.id)
-        .eq("service_id", serviceId)
-        .single();
-      return !!data;
+        .eq("service_id", serviceId);
+        
+      if (error) {
+        console.error("Error checking saved status:", error);
+        return false;
+      }
+      
+      return data && data.length > 0;
     },
     enabled: !!user && !!serviceId,
   });
@@ -77,6 +85,8 @@ export default function ServiceDetailsPage() {
   const toggleSave = useMutation({
     mutationFn: async () => {
       if (!user || !serviceId) throw new Error("User not authenticated");
+      
+      console.log("Toggling save for service:", { serviceId, isSaved });
       
       if (isSaved) {
         const { error } = await supabase
@@ -378,25 +388,25 @@ export default function ServiceDetailsPage() {
                   <span className="text-muted-foreground">Price per hour</span>
                   <span className="font-medium flex items-center">
                     <IndianRupee className="h-3 w-3 mr-1" />
-                    {service.price}
+                    {service?.price}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Estimated duration</span>
-                  <span className="font-medium">{service.duration} hours</span>
+                  <span className="font-medium">{service?.duration} hours</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between">
                   <span>Total estimate</span>
                   <span className="font-bold flex items-center">
                     <IndianRupee className="h-3 w-3 mr-1" />
-                    {service.price * service.duration}
+                    {service?.price ? service.price * service.duration : 0}
                   </span>
                 </div>
               </div>
               
               <div className="space-y-3">
-                <BookingDialog service={service} />
+                {service && <BookingDialog service={service} />}
               
                 <div className="flex gap-3">
                   <Button variant="outline" className="flex-1" onClick={handleContactProvider}>
@@ -418,7 +428,7 @@ export default function ServiceDetailsPage() {
                 </div>
               
                 <div className="mt-2">
-                  <ShareDialog serviceId={serviceId} serviceTitle={service.title} />
+                  {serviceId && <ShareDialog serviceId={serviceId} serviceTitle={service?.title || ""} />}
                 </div>
               </div>
             </div>

@@ -63,10 +63,21 @@ export function BookingForm({ service, onSuccess }: BookingFormProps) {
     try {
       // Make sure service ID, provider ID, and pricing data exist
       if (!service.id || !service.providerId) {
+        console.error("Missing service data:", service);
         throw new Error("Invalid service data");
       }
 
-      const { error } = await supabase.from("bookings").insert({
+      console.log("Booking service with data:", {
+        service_id: service.id,
+        provider_id: service.providerId,
+        user_id: user.id,
+        booking_date: bookingDateTime.toISOString(),
+        duration: service.duration || 1,
+        total_amount: service.price * (service.duration || 1),
+        notes: data.notes
+      });
+
+      const { data: result, error } = await supabase.from("bookings").insert({
         service_id: service.id,
         provider_id: service.providerId,
         user_id: user.id,
@@ -75,12 +86,14 @@ export function BookingForm({ service, onSuccess }: BookingFormProps) {
         total_amount: service.price * (service.duration || 1),
         notes: data.notes,
         status: "pending"
-      });
+      }).select();
 
       if (error) {
         console.error("Booking error:", error);
         throw error;
       }
+
+      console.log("Booking successful:", result);
 
       toast({
         title: "Booking confirmed!",
@@ -141,7 +154,7 @@ export function BookingForm({ service, onSuccess }: BookingFormProps) {
                     }}
                     disabled={(date) => date < new Date()}
                     initialFocus
-                    className="p-3"
+                    className="p-3 pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
