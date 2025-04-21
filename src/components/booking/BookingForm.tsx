@@ -61,15 +61,16 @@ export function BookingForm({ service, onSuccess }: BookingFormProps) {
     bookingDateTime.setHours(parseInt(hours), parseInt(minutes));
 
     try {
-      // Make sure service ID, provider ID, and pricing data exist
+      // Make sure service ID and provider ID exist
       if (!service.id || !service.providerId) {
         console.error("Missing service data:", service);
         throw new Error("Invalid service data");
       }
 
-      // Generate UUIDs for service_id and provider_id if they are numeric strings
-      const serviceId = service.id.includes("-") ? service.id : crypto.randomUUID();
-      const providerId = service.providerId.includes("-") ? service.providerId : crypto.randomUUID();
+      // Ensure we're using valid UUIDs - try to use the original IDs first
+      // If they don't have dashes (not a UUID format), leave them as is - the database will handle them
+      const serviceId = service.id;
+      const providerId = service.providerId;
       
       console.log("Booking service with data:", {
         service_id: serviceId,
@@ -158,6 +159,7 @@ export function BookingForm({ service, onSuccess }: BookingFormProps) {
                     }}
                     disabled={(date) => date < new Date()}
                     initialFocus
+                    className="p-3 pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -58,19 +59,18 @@ export default function ServiceDetailsPage() {
     }
   }, [serviceId]);
 
-  const formattedServiceId = serviceId && !serviceId.includes('-') ? crypto.randomUUID() : serviceId;
-
+  // Query for checking if a service is saved
   const { data: isSaved, refetch: refetchSavedStatus } = useQuery({
-    queryKey: ["savedService", formattedServiceId, user?.id],
+    queryKey: ["savedService", serviceId, user?.id],
     queryFn: async () => {
-      if (!user || !formattedServiceId) return false;
+      if (!user || !serviceId) return false;
       
-      console.log("Checking if service is saved:", { serviceId: formattedServiceId, userId: user.id });
+      console.log("Checking if service is saved:", { serviceId, userId: user.id });
       const { data, error } = await supabase
         .from("saved_services")
         .select()
         .eq("user_id", user.id)
-        .eq("service_id", formattedServiceId);
+        .eq("service_id", serviceId);
         
       if (error) {
         console.error("Error checking saved status:", error);
@@ -79,28 +79,31 @@ export default function ServiceDetailsPage() {
       
       return data && data.length > 0;
     },
-    enabled: !!user && !!formattedServiceId,
+    enabled: !!user && !!serviceId,
   });
 
+  // Mutation for toggling save status
   const toggleSave = useMutation({
     mutationFn: async () => {
-      if (!user || !formattedServiceId) throw new Error("User not authenticated");
+      if (!user || !serviceId) throw new Error("User not authenticated");
       
-      console.log("Toggling save for service:", { serviceId: formattedServiceId, isSaved });
+      console.log("Toggling save for service:", { serviceId, isSaved });
       
       if (isSaved) {
+        // Delete the saved service if it exists
         const { error } = await supabase
           .from("saved_services")
           .delete()
           .eq("user_id", user.id)
-          .eq("service_id", formattedServiceId);
+          .eq("service_id", serviceId);
         if (error) throw error;
       } else {
+        // Insert a new saved service if it doesn't exist
         const { error } = await supabase
           .from("saved_services")
           .insert({
             user_id: user.id,
-            service_id: formattedServiceId,
+            service_id: serviceId,
           });
         if (error) throw error;
       }
