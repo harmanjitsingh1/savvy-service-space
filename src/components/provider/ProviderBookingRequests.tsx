@@ -19,6 +19,8 @@ export function ProviderBookingRequests() {
     queryKey: ['providerBookings', user?.id],
     queryFn: async () => {
       if (!user) return [];
+      
+      // First attempt to fetch with the provider_services join
       const { data, error } = await supabase
         .from('bookings')
         .select(`
@@ -29,9 +31,23 @@ export function ProviderBookingRequests() {
         .order('booking_date', { ascending: false });
       
       if (error) {
-        console.error('Error fetching bookings:', error);
-        return [];
+        console.error('Error fetching bookings with provider_services:', error);
+        
+        // Fallback to just fetching bookings without the join
+        const { data: basicData, error: basicError } = await supabase
+          .from('bookings')
+          .select('*')
+          .eq('provider_id', user.id)
+          .order('booking_date', { ascending: false });
+          
+        if (basicError) {
+          console.error('Error fetching basic bookings:', basicError);
+          return [];
+        }
+        
+        return basicData || [];
       }
+      
       return data || [];
     },
     enabled: !!user
@@ -95,7 +111,9 @@ export function ProviderBookingRequests() {
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center justify-between">
                     <h3 className="font-medium">
-                      {booking.provider_services?.title || 'Service'}
+                      {booking.provider_services && 'title' in booking.provider_services 
+                        ? booking.provider_services.title 
+                        : 'Service'}
                     </h3>
                     <Badge
                       variant={
