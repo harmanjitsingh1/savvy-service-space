@@ -17,6 +17,7 @@ export type Database = {
           id: string
           notes: string | null
           provider_id: string
+          provider_status: string | null
           service_id: string
           status: string | null
           total_amount: number
@@ -30,6 +31,7 @@ export type Database = {
           id?: string
           notes?: string | null
           provider_id: string
+          provider_status?: string | null
           service_id: string
           status?: string | null
           total_amount: number
@@ -43,6 +45,7 @@ export type Database = {
           id?: string
           notes?: string | null
           provider_id?: string
+          provider_status?: string | null
           service_id?: string
           status?: string | null
           total_amount?: number
@@ -93,6 +96,83 @@ export type Database = {
           state?: string | null
           updated_at?: string | null
           zipcode?: string | null
+        }
+        Relationships: []
+      }
+      provider_earnings: {
+        Row: {
+          amount: number
+          booking_id: string
+          created_at: string | null
+          id: string
+          provider_id: string
+          status: string
+        }
+        Insert: {
+          amount: number
+          booking_id: string
+          created_at?: string | null
+          id?: string
+          provider_id: string
+          status?: string
+        }
+        Update: {
+          amount?: number
+          booking_id?: string
+          created_at?: string | null
+          id?: string
+          provider_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_earnings_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provider_services: {
+        Row: {
+          availability: Json | null
+          category: string
+          created_at: string | null
+          description: string | null
+          duration: number
+          id: string
+          images: string[] | null
+          price: number
+          provider_id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          availability?: Json | null
+          category: string
+          created_at?: string | null
+          description?: string | null
+          duration?: number
+          id?: string
+          images?: string[] | null
+          price: number
+          provider_id: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          availability?: Json | null
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          duration?: number
+          id?: string
+          images?: string[] | null
+          price?: number
+          provider_id?: string
+          title?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
