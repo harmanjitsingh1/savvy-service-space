@@ -21,7 +21,10 @@ export function ProviderBookingRequests() {
       if (!user) return [];
       const { data, error } = await supabase
         .from('bookings')
-        .select('*, services(title)')
+        .select(`
+          *,
+          provider_services(title)
+        `)
         .eq('provider_id', user.id)
         .order('booking_date', { ascending: false });
       
@@ -92,7 +95,7 @@ export function ProviderBookingRequests() {
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center justify-between">
                     <h3 className="font-medium">
-                      {booking.services?.title || 'Service'}
+                      {booking.provider_services?.title || 'Service'}
                     </h3>
                     <Badge
                       variant={
