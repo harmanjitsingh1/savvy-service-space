@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -99,25 +98,47 @@ export default function ServiceDetailsPage() {
 
   const toggleSave = useMutation({
     mutationFn: async () => {
-      if (!user) throw new Error("User not authenticated");
+      if (!user || !formattedServiceId) throw new Error("User not authenticated or invalid service");
       
       console.log("Toggling save for service:", { serviceId: formattedServiceId, isSaved });
       
-      await new Promise(resolve => setTimeout(resolve, 500));
-      return { success: true };
+      try {
+        if (isSaved) {
+          // Delete the saved service
+          const { error } = await supabase
+            .from("saved_services")
+            .delete()
+            .eq("user_id", user.id)
+            .eq("service_id", formattedServiceId);
+          
+          if (error) throw error;
+          return { success: true, isSaved: false };
+        } else {
+          // Insert the saved service
+          const { error } = await supabase
+            .from("saved_services")
+            .insert({
+              user_id: user.id,
+              service_id: formattedServiceId
+            });
+          
+          if (error) throw error;
+          return { success: true, isSaved: true };
+        }
+      } catch (error) {
+        console.error("Error toggling save:", error);
+        throw error;
+      }
     },
-    onSuccess: () => {
-      // Instead of trying to directly set data, invalidate the query to trigger a refetch
-      queryClient.invalidateQueries({ queryKey: ["savedService", formattedServiceId, user?.id] });
-      
-      // Or we can use local state until the query refetches
-      queryClient.setQueryData(["savedService", formattedServiceId, user?.id], !isSaved);
+    onSuccess: (data) => {
+      // Update the cache with the new value
+      queryClient.setQueryData(["savedService", formattedServiceId, user?.id], data.isSaved);
       
       toast({
-        title: isSaved ? "Service removed from saved" : "Service saved",
-        description: isSaved 
-          ? "The service has been removed from your saved list" 
-          : "The service has been added to your saved list",
+        title: data.isSaved ? "Service saved" : "Service removed from saved",
+        description: data.isSaved 
+          ? "The service has been added to your saved list" 
+          : "The service has been removed from your saved list",
       });
     },
     onError: (error) => {

@@ -1,163 +1,188 @@
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { useAuth } from "@/contexts/AuthContext";
-import { 
-  Calendar, 
-  MessageSquare, 
-  Heart, 
-  Settings, 
-  Clock, 
-  CheckCircle,
-  XCircle,
-  PlusCircle,
-  ArrowRight,
-  IndianRupee 
-} from "lucide-react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
 import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  Calendar,
+  Clock,
+  MessageSquare,
+  Heart,
+  Settings,
+  MapPin,
+  ChevronRight,
+  IndianRupee,
+  X,
+  UserCircle,
+  LogOut,
+} from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("bookings");
+  const queryClient = useQueryClient();
 
-  const { data: bookings, refetch } = useQuery({
+  const { data: bookings, isLoading: loadingBookings } = useQuery({
     queryKey: ["bookings", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      
-      const { data: bookingsData, error: bookingsError } = await supabase
-        .from("bookings")
-        .select('*')
-        .eq("user_id", user.id)
-        .order("booking_date", { ascending: true });
 
-      if (bookingsError) throw bookingsError;
-      
-      const bookingsWithServices = await Promise.all(bookingsData.map(async (booking) => {
-        const { data: service, error: serviceError } = await supabase
-          .from("services")
-          .select('*')
-          .eq("id", booking.service_id)
-          .single();
-          
-        if (serviceError) {
-          console.error("Error fetching service:", serviceError);
-          return {
-            ...booking,
-            service: {
-              title: "Unknown Service",
-              duration: booking.duration,
-              price: booking.total_amount / booking.duration
-            }
-          };
+      try {
+        const { data, error } = await supabase
+          .from("bookings")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("booking_date", { ascending: false });
+
+        if (error) {
+          console.error("Error fetching bookings:", error);
+          throw error;
         }
-        
-        return {
-          ...booking,
-          service
-        };
-      }));
-      
-      return bookingsWithServices;
+
+        return data || [];
+      } catch (error) {
+        console.error("Exception fetching bookings:", error);
+        return [];
+      }
     },
     enabled: !!user,
   });
 
-  const updateBookingStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const { error } = await supabase
-        .from("bookings")
-        .update({ status })
-        .eq("id", id);
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      refetch();
-      toast({
-        title: "Success",
-        description: "Booking status updated successfully",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to update booking status",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleCancelBooking = (id: string) => {
-    updateBookingStatus.mutate({ id, status: "cancelled" });
-  };
-
-  const getUpcomingBookings = () => {
-    return bookings?.filter(
-      (booking) => 
-        new Date(booking.booking_date) > new Date() && 
-        booking.status !== "cancelled"
-    ) || [];
-  };
-
-  const getPastBookings = () => {
-    return bookings?.filter(
-      (booking) => 
-        new Date(booking.booking_date) < new Date() && 
-        booking.status !== "cancelled"
-    ) || [];
-  };
-
-  const getCancelledBookings = () => {
-    return bookings?.filter((booking) => booking.status === "cancelled") || [];
-  };
-
-  const { data: savedServices } = useQuery({
+  const { data: savedServices, isLoading: loadingSavedServices } = useQuery({
     queryKey: ["savedServices", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      
-      const { data: savedData, error: savedError } = await supabase
-        .from("saved_services")
-        .select(`
-          service_id,
-          services (
-            id,
-            title,
-            description,
-            price,
-            duration,
-            category,
-            provider_id
-          )
-        `)
-        .eq("user_id", user.id);
 
-      if (savedError) throw savedError;
-      return savedData.map(item => item.services);
+      try {
+        const { data, error } = await supabase
+          .from("saved_services")
+          .select(`
+            service_id,
+            services:service_id (*)
+          `)
+          .eq("user_id", user.id);
+
+        if (error) {
+          console.error("Error fetching saved services:", error);
+          throw error;
+        }
+
+        return data || [];
+      } catch (error) {
+        console.error("Exception fetching saved services:", error);
+        return [];
+      }
     },
     enabled: !!user,
+  });
+
+  const { data: conversations, isLoading: loadingMessages } = useQuery({
+    queryKey: ["conversations", user?.id],
+    queryFn: async () => {
+      // This would normally fetch from a messages/conversations table
+      // For now, we'll return mock data
+      return [
+        {
+          id: "1",
+          participantId: "provider1",
+          participantName: "John Doe",
+          participantImage: "https://via.placeholder.com/150",
+          lastMessage: "Thanks for booking the service",
+          unreadCount: 2,
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: "2",
+          participantId: "provider2",
+          participantName: "Jane Smith",
+          participantImage: "https://via.placeholder.com/150",
+          lastMessage: "Your service has been confirmed",
+          unreadCount: 0,
+          updatedAt: new Date(Date.now() - 86400000).toISOString(),
+        },
+      ];
+    },
+    enabled: !!user && activeTab === "messages",
   });
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
   };
 
+  const cancelBooking = useMutation({
+    mutationFn: async (bookingId: string) => {
+      const { error } = await supabase
+        .from("bookings")
+        .update({ status: "cancelled" })
+        .eq("id", bookingId);
+
+      if (error) throw error;
+      return { success: true };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bookings", user?.id] });
+      toast({
+        title: "Booking cancelled",
+        description: "Your booking has been cancelled successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to cancel booking. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const removeSavedService = useMutation({
+    mutationFn: async (serviceId: string) => {
+      if (!user) throw new Error("User not authenticated");
+
+      const { error } = await supabase
+        .from("saved_services")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("service_id", serviceId);
+
+      if (error) throw error;
+      return { success: true };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["savedServices", user?.id] });
+      toast({
+        title: "Service removed",
+        description: "Service has been removed from your saved list",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to remove service. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   return (
     <MainLayout>
       <div className="container py-8">
-        <div className="flex flex-col md:flex-row gap-6">
-          <Card className="w-full md:w-64 h-fit shrink-0">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Card className="md:col-span-1">
             <CardHeader>
-              <CardTitle className="text-xl">Dashboard</CardTitle>
+              <CardTitle>Dashboard</CardTitle>
               <CardDescription>Manage your bookings and services</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
@@ -165,38 +190,34 @@ export default function DashboardPage() {
                 <TabsList className="flex flex-col h-auto w-full rounded-none border-r bg-transparent p-0">
                   <TabsTrigger 
                     value="bookings" 
-                    className="justify-start rounded-none border-r-2 border-transparent px-6 py-3 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
+                    className="justify-start rounded-none border-b data-[state=active]:bg-muted"
                   >
-                    <Calendar className="h-4 w-4 mr-2" />
-                    My Bookings
+                    <Calendar className="h-4 w-4 mr-2" /> My Bookings
                   </TabsTrigger>
                   <TabsTrigger 
                     value="messages" 
-                    className="justify-start rounded-none border-r-2 border-transparent px-6 py-3 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
+                    className="justify-start rounded-none border-b data-[state=active]:bg-muted"
                   >
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    Messages
+                    <MessageSquare className="h-4 w-4 mr-2" /> Messages
                   </TabsTrigger>
                   <TabsTrigger 
                     value="saved" 
-                    className="justify-start rounded-none border-r-2 border-transparent px-6 py-3 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
+                    className="justify-start rounded-none border-b data-[state=active]:bg-muted"
                   >
-                    <Heart className="h-4 w-4 mr-2" />
-                    Saved Services
+                    <Heart className="h-4 w-4 mr-2" /> Saved Services
                   </TabsTrigger>
                   <TabsTrigger 
                     value="settings" 
-                    className="justify-start rounded-none border-r-2 border-transparent px-6 py-3 data-[state=active]:border-primary data-[state=active]:bg-primary/5"
+                    className="justify-start rounded-none data-[state=active]:bg-muted"
                   >
-                    <Settings className="h-4 w-4 mr-2" />
-                    Settings
+                    <Settings className="h-4 w-4 mr-2" /> Settings
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
             </CardContent>
           </Card>
 
-          <div className="flex-1">
+          <div className="md:col-span-3">
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
               <div className="hidden">
                 <TabsList>
@@ -214,145 +235,84 @@ export default function DashboardPage() {
                     <CardDescription>View and manage your service bookings</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <Tabs defaultValue="upcoming">
-                      <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-                        <TabsTrigger value="past">Past</TabsTrigger>
-                        <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
-                      </TabsList>
-                      
-                      <TabsContent value="upcoming" className="pt-4">
-                        {getUpcomingBookings().length === 0 ? (
-                          <div className="text-center py-10 text-muted-foreground">
-                            <p>No upcoming bookings</p>
+                    {loadingBookings ? (
+                      <div className="space-y-4">
+                        {[1, 2, 3].map((i) => (
+                          <div key={i} className="animate-pulse">
+                            <div className="h-20 bg-muted rounded-md"></div>
                           </div>
-                        ) : (
-                          getUpcomingBookings().map((booking) => (
-                            <div key={booking.id} className="rounded-lg border shadow-sm mb-4">
-                              <div className="p-6">
-                                <div className="flex items-center justify-between mb-4">
-                                  <div>
-                                    <h3 className="font-semibold text-lg">{booking.service.title}</h3>
-                                    <p className="text-sm text-muted-foreground">
-                                      Scheduled for {format(new Date(booking.booking_date), "PPP 'at' p")}
-                                    </p>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm"
-                                      onClick={() => navigate(`/booking/${booking.id}/reschedule`)}
-                                    >
-                                      <Clock className="h-3 w-3 mr-1" />
-                                      Reschedule
-                                    </Button>
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm"
-                                      onClick={() => handleCancelBooking(booking.id)}
-                                    >
-                                      <XCircle className="h-3 w-3 mr-1" />
-                                      Cancel
-                                    </Button>
-                                  </div>
+                        ))}
+                      </div>
+                    ) : bookings && bookings.length > 0 ? (
+                      <div className="space-y-4">
+                        {bookings.map((booking: any) => (
+                          <div
+                            key={booking.id}
+                            className="flex flex-col sm:flex-row justify-between gap-4 p-4 border rounded-md"
+                          >
+                            <div className="flex-1 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <h3 className="font-medium">
+                                  {booking.service_id.substring(0, 8)}
+                                </h3>
+                                <Badge
+                                  variant={
+                                    booking.status === "confirmed"
+                                      ? "default"
+                                      : booking.status === "cancelled"
+                                      ? "destructive"
+                                      : "outline"
+                                  }
+                                >
+                                  {booking.status}
+                                </Badge>
+                              </div>
+                              <div className="flex flex-col sm:flex-row gap-2 sm:gap-6 text-sm text-muted-foreground">
+                                <div className="flex items-center">
+                                  <Clock className="h-4 w-4 mr-1" />
+                                  {new Date(booking.booking_date).toLocaleDateString()} at{" "}
+                                  {new Date(booking.booking_date).toLocaleTimeString([], {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
                                 </div>
-                                <div className="flex items-center gap-4 text-sm">
-                                  <div className="flex items-center">
-                                    <Clock className="h-3 w-3 mr-1 text-muted-foreground" />
-                                    <span>{booking.service.duration} hour(s)</span>
-                                  </div>
-                                  <div>
-                                    <span className="text-primary font-medium flex items-center">
-                                      <IndianRupee className="h-3 w-3 mr-1" />
-                                      {booking.total_amount}
-                                    </span>
-                                  </div>
+                                <div className="flex items-center">
+                                  <IndianRupee className="h-4 w-4 mr-1" />
+                                  {booking.total_amount}
                                 </div>
                               </div>
                             </div>
-                          ))
-                        )}
-                        
-                        <div className="mt-4 text-center">
-                          <Button variant="outline" onClick={() => navigate('/services')}>
-                            <PlusCircle className="h-4 w-4 mr-2" />
-                            Book New Service
-                          </Button>
-                        </div>
-                      </TabsContent>
-                      
-                      <TabsContent value="past" className="pt-4">
-                        {getPastBookings().length === 0 ? (
-                          <div className="text-center py-10 text-muted-foreground">
-                            <p>No past bookings</p>
-                          </div>
-                        ) : (
-                          getPastBookings().map((booking) => (
-                            <div key={booking.id} className="rounded-lg border shadow-sm mb-4">
-                              <div className="p-6">
-                                <div className="flex items-center justify-between mb-4">
-                                  <div>
-                                    <h3 className="font-semibold text-lg">{booking.service.title}</h3>
-                                    <p className="text-sm text-muted-foreground">
-                                      Completed on {format(new Date(booking.booking_date), "PPP")}
-                                    </p>
-                                  </div>
-                                  <Button variant="outline" size="sm">
-                                    <CheckCircle className="h-3 w-3 mr-1" />
-                                    Leave Review
-                                  </Button>
-                                </div>
-                                <div className="flex items-center gap-4 text-sm">
-                                  <div className="flex items-center">
-                                    <Clock className="h-3 w-3 mr-1 text-muted-foreground" />
-                                    <span>{booking.service.duration} hour(s)</span>
-                                  </div>
-                                  <div>
-                                    <span className="text-primary font-medium flex items-center">
-                                      <IndianRupee className="h-3 w-3 mr-1" />
-                                      {booking.total_amount}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
+                            <div className="flex flex-row sm:flex-col gap-2 justify-end">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => navigate(`/services/${booking.service_id}`)}
+                              >
+                                View Details
+                              </Button>
+                              {booking.status === "pending" && (
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => cancelBooking.mutate(booking.id)}
+                                >
+                                  Cancel
+                                </Button>
+                              )}
                             </div>
-                          ))
-                        )}
-                      </TabsContent>
-                      
-                      <TabsContent value="cancelled" className="pt-4">
-                        {getCancelledBookings().length === 0 ? (
-                          <div className="text-center py-10 text-muted-foreground">
-                            <p>No cancelled bookings</p>
                           </div>
-                        ) : (
-                          getCancelledBookings().map((booking) => (
-                            <div key={booking.id} className="rounded-lg border shadow-sm mb-4">
-                              <div className="p-6">
-                                <div>
-                                  <h3 className="font-semibold text-lg">{booking.service.title}</h3>
-                                  <p className="text-sm text-muted-foreground">
-                                    Was scheduled for {format(new Date(booking.booking_date), "PPP")}
-                                  </p>
-                                </div>
-                                <div className="flex items-center gap-4 text-sm mt-4">
-                                  <div className="flex items-center">
-                                    <Clock className="h-3 w-3 mr-1 text-muted-foreground" />
-                                    <span>{booking.service.duration} hour(s)</span>
-                                  </div>
-                                  <div>
-                                    <span className="text-primary font-medium flex items-center">
-                                      <IndianRupee className="h-3 w-3 mr-1" />
-                                      {booking.total_amount}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </TabsContent>
-                    </Tabs>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                        <h3 className="text-lg font-medium mb-2">No bookings yet</h3>
+                        <p className="text-muted-foreground mb-4">
+                          You haven't booked any services yet
+                        </p>
+                        <Button onClick={() => navigate("/services")}>Browse Services</Button>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -361,12 +321,66 @@ export default function DashboardPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle>Messages</CardTitle>
-                    <CardDescription>Chat with service providers</CardDescription>
+                    <CardDescription>
+                      Communicate with service providers
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-center py-10 text-muted-foreground">
-                      <p>No messages yet</p>
-                    </div>
+                    {loadingMessages ? (
+                      <div className="space-y-4">
+                        {[1, 2, 3].map((i) => (
+                          <div key={i} className="animate-pulse">
+                            <div className="h-16 bg-muted rounded-md"></div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : conversations && conversations.length > 0 ? (
+                      <div className="space-y-2">
+                        {conversations.map((conversation: any) => (
+                          <div
+                            key={conversation.id}
+                            className="flex items-center gap-4 p-3 border rounded-md hover:bg-accent/50 cursor-pointer"
+                            onClick={() => navigate(`/messages/${conversation.participantId}`)}
+                          >
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage
+                                src={conversation.participantImage}
+                                alt={conversation.participantName}
+                              />
+                              <AvatarFallback>
+                                {conversation.participantName.substring(0, 2)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <h3 className="font-medium truncate">
+                                  {conversation.participantName}
+                                </h3>
+                                <span className="text-xs text-muted-foreground">
+                                  {formatDistanceToNow(new Date(conversation.updatedAt), {
+                                    addSuffix: true,
+                                  })}
+                                </span>
+                              </div>
+                              <p className="text-sm text-muted-foreground truncate">
+                                {conversation.lastMessage}
+                              </p>
+                            </div>
+                            {conversation.unreadCount > 0 && (
+                              <Badge className="rounded-full">{conversation.unreadCount}</Badge>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                        <h3 className="text-lg font-medium mb-2">No messages yet</h3>
+                        <p className="text-muted-foreground mb-4">
+                          You haven't started any conversations yet
+                        </p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -378,39 +392,67 @@ export default function DashboardPage() {
                     <CardDescription>Services you've saved for later</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    {savedServices && savedServices.length > 0 ? (
+                    {loadingSavedServices ? (
                       <div className="space-y-4">
-                        {savedServices.map((service) => (
-                          <div key={service.id} className="flex items-center justify-between p-4 border rounded-lg">
-                            <div>
-                              <h4 className="font-medium">{service.title}</h4>
-                              <p className="text-sm text-muted-foreground">{service.category}</p>
-                              <div className="flex items-center gap-2 mt-1 text-sm">
-                                <span className="flex items-center">
-                                  <IndianRupee className="h-3 w-3 mr-1" />
-                                  {service.price}
+                        {[1, 2, 3].map((i) => (
+                          <div key={i} className="animate-pulse">
+                            <div className="h-16 bg-muted rounded-md"></div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : savedServices && savedServices.length > 0 ? (
+                      <div className="space-y-4">
+                        {savedServices.map((item: any) => (
+                          <div
+                            key={item.service_id}
+                            className="flex items-center gap-4 p-4 border rounded-md"
+                          >
+                            <div className="flex-1 space-y-1">
+                              <div className="flex items-center justify-between">
+                                <h3 className="font-medium">
+                                  {item.services?.title || "Service"}
+                                </h3>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => removeSavedService.mutate(item.service_id)}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                              <div className="flex items-center text-sm text-muted-foreground">
+                                <MapPin className="h-3 w-3 mr-1" />
+                                {item.services?.location || "Unknown location"}
+                              </div>
+                              <div className="flex items-center mt-1">
+                                <Badge variant="secondary" className="mr-2">
+                                  {item.services?.category || "General"}
+                                </Badge>
+                                <span className="text-sm font-medium flex items-center">
+                                  <IndianRupee className="h-3 w-3 mr-0.5" />
+                                  {item.services?.price || 0}
                                 </span>
-                                <span>•</span>
-                                <span>{service.duration} hour(s)</span>
                               </div>
                             </div>
-                            <Button 
-                              variant="outline" 
+                            <Button
+                              variant="outline"
                               size="sm"
-                              onClick={() => navigate(`/services/${service.id}`)}
+                              onClick={() => navigate(`/services/${item.service_id}`)}
                             >
-                              View Details
+                              View
+                              <ChevronRight className="h-4 w-4 ml-1" />
                             </Button>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center py-10 text-muted-foreground">
-                        <p>No saved services</p>
-                        <Button variant="outline" className="mt-4" onClick={() => navigate('/services')}>
-                          <Heart className="h-4 w-4 mr-2" />
-                          Browse Services
-                        </Button>
+                      <div className="text-center py-8">
+                        <Heart className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                        <h3 className="text-lg font-medium mb-2">No saved services</h3>
+                        <p className="text-muted-foreground mb-4">
+                          You haven't saved any services yet
+                        </p>
+                        <Button onClick={() => navigate("/services")}>Browse Services</Button>
                       </div>
                     )}
                   </CardContent>
@@ -420,18 +462,68 @@ export default function DashboardPage() {
               <TabsContent value="settings" className="mt-0">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Settings</CardTitle>
+                    <CardTitle>Account Settings</CardTitle>
                     <CardDescription>Manage your account preferences</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <Button 
-                      variant="outline" 
-                      className="w-full justify-between"
-                      onClick={() => navigate('/profile')}
-                    >
-                      Edit Profile
-                      <ArrowRight className="h-4 w-4" />
-                    </Button>
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-lg font-medium mb-4">Profile Information</h3>
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                          <Avatar className="h-20 w-20">
+                            <AvatarImage src={user?.image} alt={user?.name} />
+                            <AvatarFallback>
+                              <UserCircle className="h-20 w-20 text-muted-foreground" />
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 space-y-1">
+                            <h4 className="font-medium">{user?.name || "User"}</h4>
+                            <p className="text-sm text-muted-foreground">
+                              {user?.email || ""}
+                            </p>
+                            <Button size="sm" variant="outline" className="mt-2">
+                              Update Profile
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      <div>
+                        <h3 className="text-lg font-medium mb-4">Account</h3>
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <h4 className="font-medium">Change Password</h4>
+                              <p className="text-sm text-muted-foreground">
+                                Update your password
+                              </p>
+                            </div>
+                            <Button variant="outline" size="sm">
+                              Change
+                            </Button>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <h4 className="font-medium">Notifications</h4>
+                              <p className="text-sm text-muted-foreground">
+                                Manage your notification preferences
+                              </p>
+                            </div>
+                            <Button variant="outline" size="sm">
+                              Configure
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      <Button variant="destructive" className="w-full sm:w-auto">
+                        <LogOut className="h-4 w-4 mr-2" /> Sign Out
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>

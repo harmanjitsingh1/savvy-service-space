@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -63,7 +62,7 @@ export function BookingForm({ service, onSuccess }: BookingFormProps) {
     try {
       const bookingData = {
         service_id: service.id,
-        provider_id: service.providerId,
+        provider_id: user.id,
         user_id: user.id,
         booking_date: bookingDateTime.toISOString(),
         duration: service.duration || 1,
