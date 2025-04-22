@@ -38,13 +38,18 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            {/* Public routes */}
-            <Route path="/" element={<Index />} />
+            {/* Public routes - accessible to both logged in and non-logged in users */}
+            <Route element={<ProtectedRoute redirectPath="/login" />}>
+              {/* Root path - will redirect based on role in the ProtectedRoute component */}
+              <Route path="/" element={<Index />} />
+            </Route>
+            
+            {/* Service browsing routes - accessible to everyone but with redirects for providers */}
             <Route path="/services" element={<ServicesPage />} />
             <Route path="/services/:serviceId" element={<ServiceDetailsPage />} />
             
             {/* Auth routes - only accessible when NOT logged in */}
-            <Route element={<PublicRoute redirectPath="/dashboard" />}>
+            <Route element={<PublicRoute redirectPath="/" />}>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />

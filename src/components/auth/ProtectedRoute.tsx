@@ -1,6 +1,6 @@
 
-import React from "react";
-import { Navigate, Outlet, useLocation } from "react-router-dom";
+import React, { useEffect } from "react";
+import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface ProtectedRouteProps {
@@ -16,6 +16,18 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  // Redirect users to appropriate homepage based on role when they access root path
+  useEffect(() => {
+    if (isAuthenticated && !isLoading && location.pathname === "/") {
+      if (user?.role === "provider") {
+        navigate("/provider", { replace: true });
+      } else if (user?.role === "user") {
+        navigate("/dashboard", { replace: true });
+      }
+    }
+  }, [isAuthenticated, isLoading, user, location.pathname, navigate]);
 
   if (isLoading) {
     return <div className="flex h-screen items-center justify-center">Loading...</div>;
