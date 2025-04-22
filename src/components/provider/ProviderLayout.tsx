@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { ReactNode } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { 
   Sidebar, 
@@ -29,7 +29,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-export function ProviderLayout() {
+interface ProviderLayoutProps {
+  children: ReactNode;
+}
+
+export function ProviderLayout({ children }: ProviderLayoutProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -226,7 +230,7 @@ export function ProviderLayout() {
           </header>
           
           <main className="p-4 sm:p-6">
-            <Outlet />
+            {children}
           </main>
         </div>
       </div>

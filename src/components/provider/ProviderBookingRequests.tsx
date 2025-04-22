@@ -9,6 +9,25 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
+// Define a type for the booking data
+type BookingWithService = {
+  id: string;
+  booking_date: string;
+  duration: number;
+  provider_id: string;
+  provider_status: string;
+  service_id: string;
+  status: string;
+  total_amount: number;
+  user_id: string;
+  notes: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  provider_services?: {
+    title: string;
+  } | null;
+};
+
 export function ProviderBookingRequests() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -48,7 +67,7 @@ export function ProviderBookingRequests() {
         return basicData || [];
       }
       
-      return data || [];
+      return data as BookingWithService[] || [];
     },
     enabled: !!user
   });
