@@ -61,10 +61,7 @@ export function BookingForm({ service, onSuccess }: BookingFormProps) {
     bookingDateTime.setHours(parseInt(hours), parseInt(minutes));
 
     try {
-      // Instead of sending the data to Supabase, we'll simulate a successful booking
-      // This is because the mock service and provider IDs don't exist in the database
-      
-      console.log("Booking would be created with data:", {
+      const bookingData = {
         service_id: service.id,
         provider_id: service.providerId,
         user_id: user.id,
@@ -73,12 +70,23 @@ export function BookingForm({ service, onSuccess }: BookingFormProps) {
         total_amount: service.price * (service.duration || 1),
         notes: data.notes,
         status: "pending"
-      });
-
-      // Simulate a delay to make it feel like a real request
-      await new Promise(resolve => setTimeout(resolve, 800));
+      };
       
-      // Show success message
+      console.log("Creating booking with data:", bookingData);
+      
+      const { data: insertedBooking, error } = await supabase
+        .from("bookings")
+        .insert(bookingData)
+        .select()
+        .single();
+        
+      if (error) {
+        console.error("Error during booking insertion:", error);
+        throw error;
+      }
+      
+      console.log("Booking created successfully:", insertedBooking);
+      
       toast({
         title: "Booking confirmed!",
         description: "Your service has been booked successfully.",

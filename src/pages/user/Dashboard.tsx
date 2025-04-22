@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +26,7 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("bookings");
 
   const { data: bookings, refetch } = useQuery({
     queryKey: ["bookings", user?.id],
@@ -146,6 +147,10 @@ export default function DashboardPage() {
     enabled: !!user,
   });
 
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+  };
+
   return (
     <MainLayout>
       <div className="container py-8">
@@ -156,7 +161,7 @@ export default function DashboardPage() {
               <CardDescription>Manage your bookings and services</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              <Tabs defaultValue="bookings" className="w-full" orientation="vertical">
+              <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full" orientation="vertical">
                 <TabsList className="flex flex-col h-auto w-full rounded-none border-r bg-transparent p-0">
                   <TabsTrigger 
                     value="bookings" 
@@ -192,7 +197,7 @@ export default function DashboardPage() {
           </Card>
 
           <div className="flex-1">
-            <Tabs defaultValue="bookings" className="w-full">
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
               <div className="hidden">
                 <TabsList>
                   <TabsTrigger value="bookings">My Bookings</TabsTrigger>
