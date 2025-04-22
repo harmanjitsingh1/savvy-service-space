@@ -17,6 +17,15 @@ import ServicesPage from "./pages/services/ServicesPage";
 import ServiceDetailsPage from "./pages/services/ServiceDetailsPage";
 import ProfilePage from "./pages/user/Profile";
 import DashboardPage from "./pages/user/Dashboard";
+import ProviderDashboardPage from "./pages/provider/ProviderDashboard";
+import MyServicesPage from "./pages/provider/MyServices";
+import AddServicePage from "./pages/provider/AddService";
+import EditServicePage from "./pages/provider/EditService";
+import BookingRequestsPage from "./pages/provider/BookingRequests";
+import EarningsPage from "./pages/provider/Earnings";
+import ProviderMessagesPage from "./pages/provider/Messages";
+import ProviderProfilePage from "./pages/provider/Profile";
+import ProviderSettingsPage from "./pages/provider/Settings";
 
 // Create a client
 const queryClient = new QueryClient();
@@ -41,11 +50,23 @@ const App = () => (
               <Route path="/forgot-password" element={<ForgotPassword />} />
             </Route>
             
-            {/* Protected routes - only accessible when logged in */}
-            <Route element={<ProtectedRoute />}>
+            {/* Protected routes - only accessible when logged in as a user */}
+            <Route element={<ProtectedRoute requiredRole="user" />}>
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
-              {/* Add more protected routes here */}
+            </Route>
+            
+            {/* Provider routes - only accessible when logged in as a provider */}
+            <Route element={<ProtectedRoute requiredRole="provider" redirectPath="/dashboard" />}>
+              <Route path="/provider" element={<ProviderDashboardPage />} />
+              <Route path="/provider/services" element={<MyServicesPage />} />
+              <Route path="/provider/add" element={<AddServicePage />} />
+              <Route path="/provider/edit/:id" element={<EditServicePage />} />
+              <Route path="/provider/bookings" element={<BookingRequestsPage />} />
+              <Route path="/provider/earnings" element={<EarningsPage />} />
+              <Route path="/provider/messages" element={<ProviderMessagesPage />} />
+              <Route path="/provider/profile" element={<ProviderProfilePage />} />
+              <Route path="/provider/settings" element={<ProviderSettingsPage />} />
             </Route>
             
             {/* Catch-all route */}

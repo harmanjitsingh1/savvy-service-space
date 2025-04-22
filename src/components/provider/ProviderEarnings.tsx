@@ -17,7 +17,7 @@ export function ProviderEarnings() {
       if (!user) return [];
       const { data, error } = await supabase
         .from('provider_earnings')
-        .select('*, bookings(services(title))')
+        .select('*, bookings(service_id)')
         .eq('provider_id', user.id)
         .order('created_at', { ascending: false });
       
@@ -68,7 +68,7 @@ export function ProviderEarnings() {
               >
                 <div>
                   <h3 className="font-medium">
-                    {earning.bookings?.services?.title || 'Service'}
+                    Service: {earning.bookings?.service_id || 'Unknown'}
                   </h3>
                   <p className="text-sm text-muted-foreground">
                     {new Date(earning.created_at).toLocaleDateString()}
