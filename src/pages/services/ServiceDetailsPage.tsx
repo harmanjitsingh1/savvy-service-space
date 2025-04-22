@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -33,7 +34,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { BookingDialog } from "@/components/booking/BookingDialog";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ShareDialog } from "@/components/sharing/ShareDialog";
 import { cn } from "@/lib/utils";
@@ -54,6 +55,7 @@ export default function ServiceDetailsPage() {
   const { isAuthenticated, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   
   const formattedServiceId = serviceId ? createProperUuid(serviceId) : undefined;
 
@@ -68,7 +70,7 @@ export default function ServiceDetailsPage() {
     }
   }, [serviceId]);
 
-  const { data: isSaved, refetch: refetchSavedStatus } = useQuery({
+  const { data: isSaved } = useQuery({
     queryKey: ["savedService", formattedServiceId, user?.id],
     queryFn: async () => {
       if (!user || !formattedServiceId) return false;
@@ -105,7 +107,11 @@ export default function ServiceDetailsPage() {
       return { success: true };
     },
     onSuccess: () => {
-      refetchSavedStatus.setData(!isSaved);
+      // Instead of trying to directly set data, invalidate the query to trigger a refetch
+      queryClient.invalidateQueries({ queryKey: ["savedService", formattedServiceId, user?.id] });
+      
+      // Or we can use local state until the query refetches
+      queryClient.setQueryData(["savedService", formattedServiceId, user?.id], !isSaved);
       
       toast({
         title: isSaved ? "Service removed from saved" : "Service saved",
