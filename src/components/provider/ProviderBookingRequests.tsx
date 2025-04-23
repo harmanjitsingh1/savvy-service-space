@@ -151,10 +151,9 @@ export function ProviderBookingRequests() {
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center justify-between">
                     <h3 className="font-medium text-gray-900 dark:text-gray-100">
-                      {booking.provider_services && 
-                       booking.provider_services.title ? 
-                        booking.provider_services.title : 
-                        'Service'}
+                      {booking.provider_services && booking.provider_services.title 
+                        ? booking.provider_services.title 
+                        : 'Service'}
                     </h3>
                     <Badge
                       className={
