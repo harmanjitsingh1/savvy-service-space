@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +8,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
-// Define a type for the booking data with optional provider_services
 type BookingWithService = {
   id: string;
   booking_date: string;
@@ -24,7 +22,7 @@ type BookingWithService = {
   created_at: string | null;
   updated_at: string | null;
   provider_services?: {
-    title?: string;
+    title?: string | null;
   } | null;
 };
 
@@ -33,14 +31,12 @@ export function ProviderBookingRequests() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch provider's booking requests
   const { data: bookings, isLoading } = useQuery({
     queryKey: ['providerBookings', user?.id],
     queryFn: async () => {
       if (!user) return [];
       
       try {
-        // First attempt to fetch with the provider_services join
         const { data, error } = await supabase
           .from('bookings')
           .select(`
@@ -53,7 +49,6 @@ export function ProviderBookingRequests() {
         if (error) {
           console.error('Error fetching bookings with provider_services:', error);
           
-          // Fallback to just fetching bookings without the join
           const { data: basicData, error: basicError } = await supabase
             .from('bookings')
             .select('*')
@@ -68,19 +63,14 @@ export function ProviderBookingRequests() {
           return basicData as BookingWithService[];
         }
         
-        // Ensure we handle potential errors with the relation by processing the data
-        const processedData = data?.map(booking => {
-          // If there's an error with provider_services, replace it with null
-          if (booking.provider_services && typeof booking.provider_services === 'object' && 'error' in booking.provider_services) {
-            return {
-              ...booking,
-              provider_services: null
-            };
-          }
-          return booking;
-        });
-        
-        return processedData as BookingWithService[] || [];
+        const processedData = data?.map(booking => ({
+          ...booking,
+          provider_services: booking.provider_services && 'title' in booking.provider_services 
+            ? booking.provider_services 
+            : { title: null }
+        })) || [];
+
+        return processedData as BookingWithService[];
       } catch (error) {
         console.error('Unexpected error in booking fetch:', error);
         return [];
@@ -89,7 +79,6 @@ export function ProviderBookingRequests() {
     enabled: !!user
   });
 
-  // Mutation to update booking status
   const updateBookingStatus = useMutation({
     mutationFn: async ({ bookingId, status }: { bookingId: string, status: string }) => {
       const { error } = await supabase
@@ -151,9 +140,7 @@ export function ProviderBookingRequests() {
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center justify-between">
                     <h3 className="font-medium text-gray-900 dark:text-gray-100">
-                      {booking.provider_services && booking.provider_services.title 
-                        ? booking.provider_services.title 
-                        : 'Service'}
+                      {booking.provider_services?.title || 'Service'}
                     </h3>
                     <Badge
                       className={
