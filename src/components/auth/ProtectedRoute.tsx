@@ -18,7 +18,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Redirect users to appropriate homepage based on role when they access root path
+  // Redirect providers away from root path
   useEffect(() => {
     if (isAuthenticated && !isLoading && location.pathname === "/") {
       // Only redirect providers away from root, let users stay

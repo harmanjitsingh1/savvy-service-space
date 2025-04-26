@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -77,7 +77,8 @@ export function ProviderBookingRequests() {
         return [];
       }
     },
-    enabled: !!user
+    enabled: !!user,
+    refetchInterval: 10000, // Refetch every 10 seconds for real-time updates
   });
 
   const updateBookingStatus = useMutation({
@@ -108,6 +109,29 @@ export function ProviderBookingRequests() {
       });
     }
   });
+
+  // Set up realtime subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel('bookings-changes')
+      .on('postgres_changes', 
+        {
+          event: '*',
+          schema: 'public',
+          table: 'bookings',
+          filter: `provider_id=eq.${user?.id}`
+        }, 
+        (payload) => {
+          console.log('Booking change received:', payload);
+          queryClient.invalidateQueries({ queryKey: ['providerBookings', user?.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, queryClient]);
 
   if (isLoading) {
     return (
