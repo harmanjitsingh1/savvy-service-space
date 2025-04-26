@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { ProviderLayout } from "@/components/provider/ProviderLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -35,7 +34,7 @@ const passwordSchema = z
 
 export default function ProviderSettingsPage() {
   const { toast } = useToast();
-  const { signOut } = useAuth();
+  const { logout } = useAuth();
   const navigate = useNavigate();
   const [deactivateDialogOpen, setDeactivateDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -84,7 +83,7 @@ export default function ProviderSettingsPage() {
       });
       
       // Sign the user out
-      await signOut();
+      await logout();
       
       // Redirect to home page
       navigate("/");
@@ -113,7 +112,7 @@ export default function ProviderSettingsPage() {
       });
       
       // Sign the user out
-      await signOut();
+      await logout();
       
       // Redirect to home page
       navigate("/");
@@ -125,7 +124,7 @@ export default function ProviderSettingsPage() {
       });
       
       // For demo purposes, we'll still sign the user out
-      await signOut();
+      await logout();
       navigate("/");
     }
   };

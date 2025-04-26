@@ -116,7 +116,7 @@ export default function ProviderDashboardPage() {
           aggregatedData[day] = { bookings: 0, revenue: 0 };
         }
         aggregatedData[day].bookings += 1;
-        aggregatedData[day].revenue += parseFloat(booking.total_amount);
+        aggregatedData[day].revenue += parseFloat(booking.total_amount.toString());
       });
       
       // Convert to array format for Recharts
@@ -156,8 +156,8 @@ export default function ProviderDashboardPage() {
           booking_date,
           total_amount,
           status,
-          provider_services!inner(title),
-          profiles!inner(name)
+          service_id,
+          user_id
         `)
         .eq("provider_id", user.id)
         .order("created_at", { ascending: false })
@@ -165,20 +165,43 @@ export default function ProviderDashboardPage() {
       
       if (error) {
         console.error("Error fetching recent bookings:", error);
-      } else if (data) {
-        setRecentBookings(data.map(booking => ({
-          id: booking.id,
-          service: booking.provider_services.title,
-          user: booking.profiles.name,
-          status: booking.status,
-          date: booking.booking_date
-        })));
+        return;
       }
+      
+      if (!data || data.length === 0) {
+        setRecentBookings([]);
+        return;
+      }
+      
+      const bookingsWithDetails = await Promise.all(
+        data.map(async (booking) => {
+          const { data: serviceData } = await supabase
+            .from("provider_services")
+            .select("title")
+            .eq("id", booking.service_id)
+            .single();
+            
+          const { data: userData } = await supabase
+            .from("profiles")
+            .select("name")
+            .eq("id", booking.user_id)
+            .single();
+            
+          return {
+            id: booking.id,
+            service: serviceData?.title || "Unknown Service",
+            user: userData?.name || "Unknown User",
+            status: booking.status,
+            date: booking.booking_date
+          };
+        })
+      );
+      
+      setRecentBookings(bookingsWithDetails);
     };
     
     fetchRecentBookings();
     
-    // Set up real-time listener for bookings
     const bookingsChannel = supabase
       .channel('public:bookings')
       .on('postgres_changes', {
