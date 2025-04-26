@@ -23,13 +23,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log("Auth state changed:", event, session?.user?.id);
         
         if (session?.user) {
-          // Only set basic user data here, don't make Supabase calls in this callback
           setUser(prevUser => prevUser?.id === session.user?.id ? prevUser : {
             id: session.user.id,
             email: session.user.email || '',
@@ -45,7 +43,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             createdAt: new Date().toISOString(),
           });
           
-          // Defer profile fetch outside the direct callback
           setTimeout(() => {
             fetchUserProfile(session.user.id);
           }, 0);
@@ -57,13 +54,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    // Check initial session
     const checkSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user) {
-          // Directly fetch profile here since we're not in the auth state callback
           await fetchUserProfile(session.user.id);
         } else {
           setIsLoading(false);
@@ -96,13 +91,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (profile) {
         console.log("Profile loaded:", profile);
-        // Fix: Get the email from the current session since it's not in the profile table
         const { data: { session } } = await supabase.auth.getSession();
         const email = session?.user?.email || '';
         
         setUser({
           id: userId,
-          email: email, // Use email from session instead of profile
+          email: email,
           name: profile.name || '',
           role: profile.role as UserRole || 'user',
           bio: profile.bio || '',
@@ -140,7 +134,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         description: "Welcome back!",
       });
       
-      // User profile will be loaded via onAuthStateChange
     } catch (error: any) {
       console.error("Login error:", error);
       toast({
@@ -270,19 +263,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       console.log("Updating profile for user:", user.id, userData);
       
+      const profileData = {
+        name: userData.name,
+        bio: userData.bio,
+        phone: userData.phone,
+        image: userData.image,
+        address: userData.address,
+        city: userData.city,
+        state: userData.state,
+        zipcode: userData.zipCode,
+        updated_at: new Date().toISOString(),
+      };
+      
       const { error } = await supabase
         .from('profiles')
-        .update({
-          name: userData.name,
-          bio: userData.bio,
-          phone: userData.phone,
-          image: userData.image,
-          address: userData.address,
-          city: userData.city,
-          state: userData.state,
-          zipcode: userData.zipCode,
-          updated_at: new Date().toISOString(),
-        })
+        .update(profileData)
         .eq('id', user.id);
 
       if (error) throw error;

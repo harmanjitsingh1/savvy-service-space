@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,11 +11,14 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Upload } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function ProfilePage() {
   const { user, updateProfile } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
     name: user?.name || "",
@@ -26,11 +29,57 @@ export default function ProfilePage() {
     city: user?.city || "",
     state: user?.state || "",
     zipCode: user?.zipCode || "",
+    image: user?.image || "",
   });
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+  
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) {
+      return;
+    }
+    
+    const file = e.target.files[0];
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${user?.id}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+    const filePath = `profiles/${fileName}`;
+    
+    setIsUploading(true);
+    
+    try {
+      // Upload the file to Supabase storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file);
+        
+      if (uploadError) throw uploadError;
+      
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
+      
+      // Update form data with the new image URL
+      setFormData(prev => ({ ...prev, image: publicUrl }));
+      
+      toast({
+        title: "Image Uploaded",
+        description: "Your profile picture has been successfully uploaded.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Upload Failed",
+        description: error.message || "Failed to upload image",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+  
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
   };
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -63,14 +112,36 @@ export default function ProfilePage() {
             <CardContent className="p-6">
               <div className="flex flex-col items-center">
                 <Avatar className="h-24 w-24 mb-4">
-                  <AvatarImage src={user?.image} alt={user?.name} />
-                  <AvatarFallback className="text-lg">{user?.name?.charAt(0)}</AvatarFallback>
+                  <AvatarImage src={formData.image} alt={formData.name} />
+                  <AvatarFallback className="text-lg">{formData.name?.charAt(0)}</AvatarFallback>
                 </Avatar>
-                <h3 className="font-medium text-lg">{user?.name}</h3>
+                <h3 className="font-medium text-lg">{formData.name}</h3>
                 <p className="text-sm text-muted-foreground capitalize mb-4">{user?.role}</p>
                 
-                <Button variant="outline" size="sm" className="w-full">
-                  <Upload className="h-4 w-4 mr-2" /> Change Photo
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  className="hidden" 
+                  accept="image/*" 
+                  onChange={handleFileChange} 
+                  disabled={isUploading} 
+                />
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full" 
+                  onClick={triggerFileInput}
+                  disabled={isUploading}
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" /> Change Photo
+                    </>
+                  )}
                 </Button>
               </div>
               
