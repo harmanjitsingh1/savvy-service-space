@@ -230,341 +230,341 @@ export default function ProfilePage() {
               
               <Separator className="my-4" />
               
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="hidden">
-                  <TabsTrigger value="profile">Profile</TabsTrigger>
-                  <TabsTrigger value="password">Password</TabsTrigger>
-                  <TabsTrigger value="notifications">Notifications</TabsTrigger>
-                </TabsList>
-
-                <div className="space-y-1">
-                  <Button 
-                    variant={activeTab === "profile" ? "secondary" : "ghost"} 
-                    className="w-full justify-start font-normal"
-                    onClick={() => setActiveTab("profile")}
-                  >
-                    <User className="h-4 w-4 mr-2" /> Profile
-                  </Button>
-                  <Button 
-                    variant={activeTab === "password" ? "secondary" : "ghost"} 
-                    className="w-full justify-start font-normal"
-                    onClick={() => setActiveTab("password")}
-                  >
-                    <Key className="h-4 w-4 mr-2" /> Password
-                  </Button>
-                  <Button 
-                    variant={activeTab === "notifications" ? "secondary" : "ghost"} 
-                    className="w-full justify-start font-normal"
-                    onClick={() => setActiveTab("notifications")}
-                  >
-                    <Bell className="h-4 w-4 mr-2" /> Notifications
-                  </Button>
-                </div>
-              </Tabs>
+              <div className="space-y-1">
+                <Button 
+                  variant={activeTab === "profile" ? "secondary" : "ghost"} 
+                  className="w-full justify-start font-normal"
+                  onClick={() => setActiveTab("profile")}
+                >
+                  <User className="h-4 w-4 mr-2" /> Profile
+                </Button>
+                <Button 
+                  variant={activeTab === "password" ? "secondary" : "ghost"} 
+                  className="w-full justify-start font-normal"
+                  onClick={() => setActiveTab("password")}
+                >
+                  <Key className="h-4 w-4 mr-2" /> Password
+                </Button>
+                <Button 
+                  variant={activeTab === "notifications" ? "secondary" : "ghost"} 
+                  className="w-full justify-start font-normal"
+                  onClick={() => setActiveTab("notifications")}
+                >
+                  <Bell className="h-4 w-4 mr-2" /> Notifications
+                </Button>
+              </div>
             </CardContent>
           </Card>
           
           {/* Main Content */}
           <div className="flex-1">
-            <TabsContent value="profile" className={activeTab === "profile" ? "block" : "hidden"}>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Profile Information</CardTitle>
-                  <CardDescription>
-                    Update your personal information and how others see you on the platform
-                  </CardDescription>
-                </CardHeader>
-                
-                <form onSubmit={handleSubmitProfile}>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="name">Full Name</Label>
-                        <Input
-                          id="name"
-                          name="name"
-                          value={formData.name}
-                          onChange={handleChange}
-                          disabled={isLoading}
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input
-                          id="email"
-                          name="email"
-                          type="email"
-                          value={formData.email}
-                          onChange={handleChange}
-                          disabled
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Email cannot be changed
-                        </p>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="phone">Phone Number</Label>
-                        <Input
-                          id="phone"
-                          name="phone"
-                          value={formData.phone}
-                          onChange={handleChange}
-                          disabled={isLoading}
-                        />
-                      </div>
-                      
-                      <div className="md:col-span-2 space-y-2">
-                        <Label htmlFor="bio">Bio</Label>
-                        <Textarea
-                          id="bio"
-                          name="bio"
-                          value={formData.bio}
-                          onChange={handleChange}
-                          rows={4}
-                          disabled={isLoading}
-                          placeholder="Tell others a bit about yourself..."
-                        />
-                      </div>
-                      
-                      <div className="md:col-span-2">
-                        <h3 className="text-lg font-medium mb-2">Address</h3>
-                        <Separator className="mb-4" />
-                      </div>
-                      
-                      <div className="md:col-span-2 space-y-2">
-                        <Label htmlFor="address">Street Address</Label>
-                        <Input
-                          id="address"
-                          name="address"
-                          value={formData.address}
-                          onChange={handleChange}
-                          disabled={isLoading}
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="city">City</Label>
-                        <Input
-                          id="city"
-                          name="city"
-                          value={formData.city}
-                          onChange={handleChange}
-                          disabled={isLoading}
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="state">State</Label>
-                        <Input
-                          id="state"
-                          name="state"
-                          value={formData.state}
-                          onChange={handleChange}
-                          disabled={isLoading}
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="zipCode">ZIP Code</Label>
-                        <Input
-                          id="zipCode"
-                          name="zipCode"
-                          value={formData.zipCode}
-                          onChange={handleChange}
-                          disabled={isLoading}
-                        />
-                      </div>
-                    </div>
-                  </CardContent>
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="hidden">
+                <TabsTrigger value="profile">Profile</TabsTrigger>
+                <TabsTrigger value="password">Password</TabsTrigger>
+                <TabsTrigger value="notifications">Notifications</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="profile">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Profile Information</CardTitle>
+                    <CardDescription>
+                      Update your personal information and how others see you on the platform
+                    </CardDescription>
+                  </CardHeader>
                   
-                  <CardFooter>
-                    <Button type="submit" disabled={isLoading}>
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        "Save Changes"
-                      )}
-                    </Button>
-                  </CardFooter>
-                </form>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="password" className={activeTab === "password" ? "block" : "hidden"}>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Change Password</CardTitle>
-                  <CardDescription>
-                    Update your password to keep your account secure
-                  </CardDescription>
-                </CardHeader>
-                <form onSubmit={handleSubmitPassword}>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="currentPassword">Current Password</Label>
-                        <Input
-                          id="currentPassword"
-                          name="currentPassword"
-                          type="password"
-                          value={passwordData.currentPassword}
-                          onChange={handlePasswordChange}
-                          disabled={isLoading}
-                          required
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="newPassword">New Password</Label>
-                        <Input
-                          id="newPassword"
-                          name="newPassword"
-                          type="password"
-                          value={passwordData.newPassword}
-                          onChange={handlePasswordChange}
-                          disabled={isLoading}
-                          required
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                        <Input
-                          id="confirmPassword"
-                          name="confirmPassword"
-                          type="password"
-                          value={passwordData.confirmPassword}
-                          onChange={handlePasswordChange}
-                          disabled={isLoading}
-                          required
-                        />
-                      </div>
-                    </div>
-                  </CardContent>
-                  
-                  <CardFooter>
-                    <Button type="submit" disabled={isLoading}>
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Updating...
-                        </>
-                      ) : (
-                        "Update Password"
-                      )}
-                    </Button>
-                  </CardFooter>
-                </form>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="notifications" className={activeTab === "notifications" ? "block" : "hidden"}>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Notification Preferences</CardTitle>
-                  <CardDescription>
-                    Manage how and when you receive notifications
-                  </CardDescription>
-                </CardHeader>
-                <form onSubmit={handleSubmitNotifications}>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="emailNotifications">Email Notifications</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Receive notifications via email
+                  <form onSubmit={handleSubmitProfile}>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="name">Full Name</Label>
+                          <Input
+                            id="name"
+                            name="name"
+                            value={formData.name}
+                            onChange={handleChange}
+                            disabled={isLoading}
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="email">Email</Label>
+                          <Input
+                            id="email"
+                            name="email"
+                            type="email"
+                            value={formData.email}
+                            onChange={handleChange}
+                            disabled
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Email cannot be changed
                           </p>
                         </div>
-                        <Input
-                          id="emailNotifications"
-                          name="emailNotifications"
-                          type="checkbox"
-                          className="h-4 w-8"
-                          checked={notificationSettings.emailNotifications}
-                          onChange={handleNotificationChange}
-                        />
-                      </div>
-                      
-                      <Separator />
-                      
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="smsNotifications">SMS Notifications</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Receive notifications via text message
-                          </p>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="phone">Phone Number</Label>
+                          <Input
+                            id="phone"
+                            name="phone"
+                            value={formData.phone}
+                            onChange={handleChange}
+                            disabled={isLoading}
+                          />
                         </div>
-                        <Input
-                          id="smsNotifications"
-                          name="smsNotifications"
-                          type="checkbox"
-                          className="h-4 w-8"
-                          checked={notificationSettings.smsNotifications}
-                          onChange={handleNotificationChange}
-                        />
-                      </div>
-                      
-                      <Separator />
-                      
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="pushNotifications">Push Notifications</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Receive push notifications on your devices
-                          </p>
+                        
+                        <div className="md:col-span-2 space-y-2">
+                          <Label htmlFor="bio">Bio</Label>
+                          <Textarea
+                            id="bio"
+                            name="bio"
+                            value={formData.bio}
+                            onChange={handleChange}
+                            rows={4}
+                            disabled={isLoading}
+                            placeholder="Tell others a bit about yourself..."
+                          />
                         </div>
-                        <Input
-                          id="pushNotifications"
-                          name="pushNotifications"
-                          type="checkbox"
-                          className="h-4 w-8"
-                          checked={notificationSettings.pushNotifications}
-                          onChange={handleNotificationChange}
-                        />
-                      </div>
-                      
-                      <Separator />
-                      
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="marketingEmails">Marketing Emails</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Receive emails about new features and promotions
-                          </p>
+                        
+                        <div className="md:col-span-2">
+                          <h3 className="text-lg font-medium mb-2">Address</h3>
+                          <Separator className="mb-4" />
                         </div>
-                        <Input
-                          id="marketingEmails"
-                          name="marketingEmails"
-                          type="checkbox"
-                          className="h-4 w-8"
-                          checked={notificationSettings.marketingEmails}
-                          onChange={handleNotificationChange}
-                        />
+                        
+                        <div className="md:col-span-2 space-y-2">
+                          <Label htmlFor="address">Street Address</Label>
+                          <Input
+                            id="address"
+                            name="address"
+                            value={formData.address}
+                            onChange={handleChange}
+                            disabled={isLoading}
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="city">City</Label>
+                          <Input
+                            id="city"
+                            name="city"
+                            value={formData.city}
+                            onChange={handleChange}
+                            disabled={isLoading}
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="state">State</Label>
+                          <Input
+                            id="state"
+                            name="state"
+                            value={formData.state}
+                            onChange={handleChange}
+                            disabled={isLoading}
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="zipCode">ZIP Code</Label>
+                          <Input
+                            id="zipCode"
+                            name="zipCode"
+                            value={formData.zipCode}
+                            onChange={handleChange}
+                            disabled={isLoading}
+                          />
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                  
-                  <CardFooter>
-                    <Button type="submit" disabled={isLoading}>
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        "Save Preferences"
-                      )}
-                    </Button>
-                  </CardFooter>
-                </form>
-              </Card>
-            </TabsContent>
+                    </CardContent>
+                    
+                    <CardFooter>
+                      <Button type="submit" disabled={isLoading}>
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          "Save Changes"
+                        )}
+                      </Button>
+                    </CardFooter>
+                  </form>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="password">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Change Password</CardTitle>
+                    <CardDescription>
+                      Update your password to keep your account secure
+                    </CardDescription>
+                  </CardHeader>
+                  <form onSubmit={handleSubmitPassword}>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="currentPassword">Current Password</Label>
+                          <Input
+                            id="currentPassword"
+                            name="currentPassword"
+                            type="password"
+                            value={passwordData.currentPassword}
+                            onChange={handlePasswordChange}
+                            disabled={isLoading}
+                            required
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="newPassword">New Password</Label>
+                          <Input
+                            id="newPassword"
+                            name="newPassword"
+                            type="password"
+                            value={passwordData.newPassword}
+                            onChange={handlePasswordChange}
+                            disabled={isLoading}
+                            required
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                          <Input
+                            id="confirmPassword"
+                            name="confirmPassword"
+                            type="password"
+                            value={passwordData.confirmPassword}
+                            onChange={handlePasswordChange}
+                            disabled={isLoading}
+                            required
+                          />
+                        </div>
+                      </div>
+                    </CardContent>
+                    
+                    <CardFooter>
+                      <Button type="submit" disabled={isLoading}>
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Updating...
+                          </>
+                        ) : (
+                          "Update Password"
+                        )}
+                      </Button>
+                    </CardFooter>
+                  </form>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="notifications">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Notification Preferences</CardTitle>
+                    <CardDescription>
+                      Manage how and when you receive notifications
+                    </CardDescription>
+                  </CardHeader>
+                  <form onSubmit={handleSubmitNotifications}>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label htmlFor="emailNotifications">Email Notifications</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Receive notifications via email
+                            </p>
+                          </div>
+                          <Input
+                            id="emailNotifications"
+                            name="emailNotifications"
+                            type="checkbox"
+                            className="h-4 w-8"
+                            checked={notificationSettings.emailNotifications}
+                            onChange={handleNotificationChange}
+                          />
+                        </div>
+                        
+                        <Separator />
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label htmlFor="smsNotifications">SMS Notifications</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Receive notifications via text message
+                            </p>
+                          </div>
+                          <Input
+                            id="smsNotifications"
+                            name="smsNotifications"
+                            type="checkbox"
+                            className="h-4 w-8"
+                            checked={notificationSettings.smsNotifications}
+                            onChange={handleNotificationChange}
+                          />
+                        </div>
+                        
+                        <Separator />
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label htmlFor="pushNotifications">Push Notifications</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Receive push notifications on your devices
+                            </p>
+                          </div>
+                          <Input
+                            id="pushNotifications"
+                            name="pushNotifications"
+                            type="checkbox"
+                            className="h-4 w-8"
+                            checked={notificationSettings.pushNotifications}
+                            onChange={handleNotificationChange}
+                          />
+                        </div>
+                        
+                        <Separator />
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label htmlFor="marketingEmails">Marketing Emails</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Receive emails about new features and promotions
+                            </p>
+                          </div>
+                          <Input
+                            id="marketingEmails"
+                            name="marketingEmails"
+                            type="checkbox"
+                            className="h-4 w-8"
+                            checked={notificationSettings.marketingEmails}
+                            onChange={handleNotificationChange}
+                          />
+                        </div>
+                      </div>
+                    </CardContent>
+                    
+                    <CardFooter>
+                      <Button type="submit" disabled={isLoading}>
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          "Save Preferences"
+                        )}
+                      </Button>
+                    </CardFooter>
+                  </form>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </div>
