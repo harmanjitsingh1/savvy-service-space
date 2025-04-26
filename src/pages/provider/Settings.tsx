@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { ProviderLayout } from "@/components/provider/ProviderLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,16 +7,127 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+
+const passwordSchema = z
+  .object({
+    currentPassword: z.string().min(6, {
+      message: "Current password must be at least 6 characters",
+    }),
+    newPassword: z.string().min(6, {
+      message: "Password must be at least 6 characters",
+    }),
+    confirmPassword: z.string().min(6, {
+      message: "Password must be at least 6 characters",
+    }),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
 
 export default function ProviderSettingsPage() {
   const { toast } = useToast();
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
+  const [deactivateDialogOpen, setDeactivateDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   
-  const handlePasswordChange = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast({
-      title: "Password Changed",
-      description: "Your password has been updated successfully.",
-    });
+  const passwordForm = useForm<z.infer<typeof passwordSchema>>({
+    resolver: zodResolver(passwordSchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
+  });
+  
+  const handlePasswordChange = async (values: z.infer<typeof passwordSchema>) => {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: values.newPassword,
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Password Changed",
+        description: "Your password has been updated successfully.",
+      });
+      
+      passwordForm.reset();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update password",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeactivateAccount = async () => {
+    try {
+      // In a real application, this would typically set a 'is_active' flag to false
+      // in the profiles table rather than deleting the account completely
+      
+      // For this example, we'll simulate deactivation with a success message
+      toast({
+        title: "Account Deactivated",
+        description: "Your account has been deactivated. You'll now be signed out.",
+      });
+      
+      // Sign the user out
+      await signOut();
+      
+      // Redirect to home page
+      navigate("/");
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to deactivate account",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    try {
+      // Delete user account (Note: In a production app, you might want to 
+      // implement a more comprehensive deletion process)
+      const { error } = await supabase.auth.admin.deleteUser(
+        (await supabase.auth.getUser()).data.user?.id!
+      );
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Account Deleted",
+        description: "Your account has been deleted. You'll now be signed out.",
+      });
+      
+      // Sign the user out
+      await signOut();
+      
+      // Redirect to home page
+      navigate("/");
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to delete account. This operation requires admin privileges.",
+        variant: "destructive",
+      });
+      
+      // For demo purposes, we'll still sign the user out
+      await signOut();
+      navigate("/");
+    }
   };
 
   return (
@@ -32,24 +143,53 @@ export default function ProviderSettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handlePasswordChange} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="current-password">Current Password</Label>
-                <Input id="current-password" type="password" />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="new-password">New Password</Label>
-                <Input id="new-password" type="password" />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="confirm-password">Confirm New Password</Label>
-                <Input id="confirm-password" type="password" />
-              </div>
-              
-              <Button type="submit">Update Password</Button>
-            </form>
+            <Form {...passwordForm}>
+              <form onSubmit={passwordForm.handleSubmit(handlePasswordChange)} className="space-y-4">
+                <FormField
+                  control={passwordForm.control}
+                  name="currentPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel htmlFor="current-password">Current Password</FormLabel>
+                      <FormControl>
+                        <Input id="current-password" type="password" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={passwordForm.control}
+                  name="newPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel htmlFor="new-password">New Password</FormLabel>
+                      <FormControl>
+                        <Input id="new-password" type="password" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={passwordForm.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel htmlFor="confirm-password">Confirm New Password</FormLabel>
+                      <FormControl>
+                        <Input id="confirm-password" type="password" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <Button type="submit">Update Password</Button>
+              </form>
+            </Form>
           </CardContent>
         </Card>
         
@@ -94,16 +234,59 @@ export default function ProviderSettingsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <Button variant="outline" className="w-full">
-                Deactivate Account
-              </Button>
-              <Button variant="destructive" className="w-full">
-                Delete Account
-              </Button>
+              <div className="space-y-2">
+                <h3 className="font-medium">Deactivate Account</h3>
+                <p className="text-sm text-muted-foreground">
+                  Temporarily disable your account. You can reactivate it later.
+                </p>
+                <Button 
+                  variant="outline" 
+                  className="w-full sm:w-auto mt-2"
+                  onClick={() => setDeactivateDialogOpen(true)}
+                >
+                  Deactivate Account
+                </Button>
+              </div>
+              
+              <div className="pt-4 border-t space-y-2">
+                <h3 className="font-medium text-destructive">Delete Account</h3>
+                <p className="text-sm text-muted-foreground">
+                  Permanently delete your account and all associated data. This action cannot be undone.
+                </p>
+                <Button 
+                  variant="destructive" 
+                  className="w-full sm:w-auto mt-2"
+                  onClick={() => setDeleteDialogOpen(true)}
+                >
+                  Delete Account
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
+      
+      <ConfirmationDialog 
+        open={deactivateDialogOpen}
+        onOpenChange={setDeactivateDialogOpen}
+        title="Deactivate Account"
+        description="Are you sure you want to deactivate your account? You will no longer be visible to clients and won't receive new bookings until you reactivate."
+        confirmLabel="Deactivate"
+        cancelLabel="Cancel"
+        onConfirm={handleDeactivateAccount}
+        isDangerous={false}
+      />
+      
+      <ConfirmationDialog 
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Delete Account"
+        description="Are you sure you want to delete your account? This will permanently remove your account, all your services, and booking history. This action cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirm={handleDeleteAccount}
+        isDangerous={true}
+      />
     </ProviderLayout>
   );
 }

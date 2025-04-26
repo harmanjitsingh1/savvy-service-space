@@ -25,7 +25,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       if (user?.role === "provider") {
         navigate("/provider", { replace: true });
       }
-      // No redirection for users - they can access the root path
+      // Users can access the root path
     }
   }, [isAuthenticated, isLoading, user, location.pathname, navigate]);
 

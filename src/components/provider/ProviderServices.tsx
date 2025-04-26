@@ -7,11 +7,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 
 export function ProviderServices() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [serviceToDelete, setServiceToDelete] = useState<string | null>(null);
 
   // Fetch provider's services
   const { data: services, isLoading } = useQuery({
@@ -35,12 +40,42 @@ export function ProviderServices() {
   // Delete service mutation
   const deleteService = useMutation({
     mutationFn: async (serviceId: string) => {
+      // First, check if the service has any images to delete
+      const { data: serviceData, error: fetchError } = await supabase
+        .from('provider_services')
+        .select('images')
+        .eq('id', serviceId)
+        .single();
+      
+      if (fetchError) throw fetchError;
+      
+      // Delete service from database
       const { error } = await supabase
         .from('provider_services')
         .delete()
         .eq('id', serviceId);
       
       if (error) throw error;
+      
+      // If the service had images, delete them from storage
+      if (serviceData?.images && serviceData.images.length > 0) {
+        // Extract image paths from URLs
+        const imagePaths = serviceData.images.map((url: string) => {
+          const parts = url.split('services/');
+          return parts.length > 1 ? parts[1] : null;
+        }).filter(Boolean);
+        
+        if (imagePaths.length > 0) {
+          const { error: storageError } = await supabase
+            .storage
+            .from('services')
+            .remove(imagePaths);
+          
+          if (storageError) {
+            console.error('Error deleting service images:', storageError);
+          }
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['providerServices', user?.id] });
@@ -48,6 +83,7 @@ export function ProviderServices() {
         title: 'Service Deleted',
         description: 'Your service has been successfully removed.'
       });
+      setServiceToDelete(null);
     },
     onError: (error) => {
       console.error('Error deleting service:', error);
@@ -59,10 +95,24 @@ export function ProviderServices() {
     }
   });
 
+  const handleDeleteClick = (serviceId: string) => {
+    setServiceToDelete(serviceId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (serviceToDelete) {
+      deleteService.mutate(serviceToDelete);
+      setDeleteDialogOpen(false);
+    }
+  };
+
   const handleAddService = () => {
-    // Navigate to add service form
-    // You'll need to create this route/component
-    console.log('Navigate to add service form');
+    navigate('/provider/add-service');
+  };
+
+  const handleEditService = (serviceId: string) => {
+    navigate(`/provider/edit-service/${serviceId}`);
   };
 
   if (isLoading) {
@@ -97,26 +147,41 @@ export function ProviderServices() {
                 key={service.id} 
                 className="flex justify-between items-center p-4 border rounded-md"
               >
-                <div>
-                  <h3 className="font-medium">{service.title}</h3>
-                  <p className="text-sm text-muted-foreground">{service.category}</p>
-                  <div className="flex items-center mt-2">
-                    <IndianRupee className="h-4 w-4 mr-1" />
-                    {service.price}
+                <div className="flex gap-4 items-center">
+                  {service.images && service.images.length > 0 && (
+                    <div className="h-16 w-16 rounded-md overflow-hidden">
+                      <img 
+                        src={service.images[0]} 
+                        alt={service.title} 
+                        className="h-full w-full object-cover"
+                        onError={(e) => {
+                          // Fallback for broken images
+                          (e.target as HTMLImageElement).src = 'https://via.placeholder.com/64';
+                        }}
+                      />
+                    </div>
+                  )}
+                  <div>
+                    <h3 className="font-medium">{service.title}</h3>
+                    <p className="text-sm text-muted-foreground">{service.category}</p>
+                    <div className="flex items-center mt-2">
+                      <IndianRupee className="h-4 w-4 mr-1" />
+                      {service.price}
+                    </div>
                   </div>
                 </div>
                 <div className="flex space-x-2">
                   <Button 
                     size="icon" 
                     variant="outline"
-                    onClick={() => console.log(`Edit service ${service.id}`)}
+                    onClick={() => handleEditService(service.id)}
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
                   <Button 
                     size="icon" 
                     variant="destructive"
-                    onClick={() => deleteService.mutate(service.id)}
+                    onClick={() => handleDeleteClick(service.id)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -133,6 +198,17 @@ export function ProviderServices() {
           </div>
         )}
       </CardContent>
+
+      <ConfirmationDialog 
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Delete Service"
+        description="Are you sure you want to delete this service? This action cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirm={confirmDelete}
+        isDangerous={true}
+      />
     </Card>
   );
 }
