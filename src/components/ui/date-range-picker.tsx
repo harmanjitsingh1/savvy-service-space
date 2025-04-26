@@ -24,6 +24,9 @@ export function DateRangePicker({
   dateRange,
   onDateRangeChange
 }: DateRangePickerProps) {
+  // Get today's date to use as the maximum selectable date
+  const today = new Date();
+
   return (
     <div className={cn("grid gap-2", className)}>
       <Popover>
@@ -58,6 +61,7 @@ export function DateRangePicker({
             defaultMonth={dateRange?.from}
             selected={dateRange}
             onSelect={onDateRangeChange}
+            disabled={{ after: today }}
             numberOfMonths={2}
             className={cn("p-3 pointer-events-auto")}
           />

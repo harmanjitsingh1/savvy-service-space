@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { ProviderLayout } from "@/components/provider/ProviderLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -50,6 +51,22 @@ export default function ProviderSettingsPage() {
   
   const handlePasswordChange = async (values: z.infer<typeof passwordSchema>) => {
     try {
+      // First verify the current password
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: (await supabase.auth.getUser()).data.user?.email!,
+        password: values.currentPassword,
+      });
+      
+      if (signInError) {
+        toast({
+          title: "Error",
+          description: "Current password is incorrect",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // If current password is verified, update to new password
       const { error } = await supabase.auth.updateUser({
         password: values.newPassword,
       });

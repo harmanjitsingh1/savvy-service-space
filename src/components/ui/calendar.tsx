@@ -14,10 +14,19 @@ function Calendar({
   showOutsideDays = true,
   ...props
 }: CalendarProps) {
+  // Set the max selectable date to today
+  const today = new Date();
+  const defaultDisabledDays = props.disabled || [];
+  const disabledDays = [
+    ...Array.isArray(defaultDisabledDays) ? defaultDisabledDays : [defaultDisabledDays],
+    { after: today }
+  ];
+
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
-      className={cn("p-3 pointer-events-auto", className)} // This ensures the calendar is interactive
+      className={cn("p-3 pointer-events-auto", className)} 
+      disabled={disabledDays}
       classNames={{
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
         month: "space-y-4",

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,7 +17,6 @@ export function ProviderServices() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [serviceToDelete, setServiceToDelete] = useState<string | null>(null);
 
-  // Fetch provider's services
   const { data: services, isLoading } = useQuery({
     queryKey: ['providerServices', user?.id],
     queryFn: async () => {
@@ -37,10 +35,8 @@ export function ProviderServices() {
     enabled: !!user
   });
 
-  // Delete service mutation
   const deleteService = useMutation({
     mutationFn: async (serviceId: string) => {
-      // First, check if the service has any images to delete
       const { data: serviceData, error: fetchError } = await supabase
         .from('provider_services')
         .select('images')
@@ -49,7 +45,6 @@ export function ProviderServices() {
       
       if (fetchError) throw fetchError;
       
-      // Delete service from database
       const { error } = await supabase
         .from('provider_services')
         .delete()
@@ -57,9 +52,7 @@ export function ProviderServices() {
       
       if (error) throw error;
       
-      // If the service had images, delete them from storage
       if (serviceData?.images && serviceData.images.length > 0) {
-        // Extract image paths from URLs
         const imagePaths = serviceData.images.map((url: string) => {
           const parts = url.split('services/');
           return parts.length > 1 ? parts[1] : null;
@@ -155,7 +148,6 @@ export function ProviderServices() {
                         alt={service.title} 
                         className="h-full w-full object-cover"
                         onError={(e) => {
-                          // Fallback for broken images
                           (e.target as HTMLImageElement).src = 'https://via.placeholder.com/64';
                         }}
                       />
