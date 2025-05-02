@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -62,8 +61,8 @@ const App = () => (
             <Route element={<ProtectedRoute requiredRole="provider" redirectPath="/dashboard" />}>
               <Route path="/provider" element={<ProviderDashboardPage />} />
               <Route path="/provider/services" element={<MyServicesPage />} />
-              <Route path="/provider/add" element={<AddServicePage />} />
-              <Route path="/provider/edit/:id" element={<EditServicePage />} />
+              <Route path="/provider/add-service" element={<AddServicePage />} />
+              <Route path="/provider/edit-service/:id" element={<EditServicePage />} />
               <Route path="/provider/bookings" element={<BookingRequestsPage />} />
               <Route path="/provider/earnings" element={<EarningsPage />} />
               <Route path="/provider/messages" element={<ProviderMessagesPage />} />
