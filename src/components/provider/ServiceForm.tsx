@@ -122,25 +122,40 @@ export function ServiceForm({ serviceId, onSuccess }: ServiceFormProps) {
           if (error) throw error;
           
           if (data) {
+            // Parse tags from the database
+            // Since 'tags' is not in the database schema, we need to handle it differently
+            const tagsString = data.availability && typeof data.availability === 'object' && 'tags' in data.availability 
+              ? (data.availability as any).tags?.join(', ') || ''
+              : '';
+            
+            // Parse location from the database
+            const location = data.availability && typeof data.availability === 'object' && 'location' in data.availability
+              ? (data.availability as any).location || ''
+              : '';
+
             // Populate form with existing data
             form.reset({
               title: data.title,
               category: data.category,
               description: data.description || '',
-              tags: data.tags ? data.tags.join(', ') : '',
+              tags: tagsString,
               price: data.price.toString(),
               duration: data.duration.toString(),
-              location: data.location || '',
-              availableDays: data.availability?.days || [],
+              location: location,
+              availableDays: [],
             });
 
-            // Set uploaded images and selected days
+            // Set uploaded images
             if (data.images && Array.isArray(data.images)) {
               setUploadedImages(data.images);
             }
             
-            if (data.availability?.days && Array.isArray(data.availability.days)) {
-              setSelectedDays(data.availability.days);
+            // Set selected days from availability if it exists
+            if (data.availability && 
+                typeof data.availability === 'object' && 
+                'days' in data.availability &&
+                Array.isArray((data.availability as any).days)) {
+              setSelectedDays((data.availability as any).days);
             }
           }
         } catch (error: any) {
@@ -237,19 +252,19 @@ export function ServiceForm({ serviceId, onSuccess }: ServiceFormProps) {
         ? values.tags.split(',').map((tag) => tag.trim()).filter(Boolean)
         : [];
 
-      // Create availability object
+      // Create availability object with both days and tags
       const availability = {
         days: selectedDays,
+        tags: tagsArray,
+        location: values.location
       };
 
       const serviceData = {
         title: values.title,
         description: values.description,
         category: values.category,
-        tags: tagsArray.length > 0 ? tagsArray : null,
         price: parseFloat(values.price),
         duration: parseInt(values.duration),
-        location: values.location || null,
         provider_id: user.id,
         availability,
         images: uploadedImages.length > 0 ? uploadedImages : null,
