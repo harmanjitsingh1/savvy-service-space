@@ -38,14 +38,7 @@ const ensureBucketExists = async (bucket: string): Promise<void> => {
   const bucketExists = buckets?.some(b => b.name === bucket);
   
   if (!bucketExists) {
-    console.warn(`Bucket '${bucket}' not found, attempting to create it...`);
-    try {
-      // You can't create buckets client-side, so we'll throw an appropriate error
-      throw new Error(`Bucket '${bucket}' does not exist. Please ensure the bucket is created in Supabase.`);
-    } catch (error) {
-      console.error('Error with bucket:', error);
-      throw error;
-    }
+    throw new Error(`Bucket '${bucket}' does not exist. Please ensure the bucket is created in Supabase.`);
   }
 };
 

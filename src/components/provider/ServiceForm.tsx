@@ -93,6 +93,28 @@ export function ServiceForm({ serviceId, onSuccess }: ServiceFormProps) {
   const [uploading, setUploading] = useState(false);
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [imageLoadError, setImageLoadError] = useState<string | null>(null);
+  const [bucketExists, setBucketExists] = useState<boolean>(true);
+
+  // Check if the bucket exists
+  useEffect(() => {
+    const checkBucketExists = async () => {
+      try {
+        const { data, error } = await supabase.storage.listBuckets();
+        if (error) throw error;
+        
+        const exists = data.some(bucket => bucket.name === 'services');
+        setBucketExists(exists);
+        
+        if (!exists) {
+          setImageLoadError('Services storage bucket not found. Please contact your administrator.');
+        }
+      } catch (error: any) {
+        console.error('Error checking bucket exists:', error);
+      }
+    };
+    
+    checkBucketExists();
+  }, []);
 
   // Initialize form with default values
   const form = useForm<z.infer<typeof serviceSchema>>({
@@ -124,7 +146,6 @@ export function ServiceForm({ serviceId, onSuccess }: ServiceFormProps) {
           
           if (data) {
             // Parse tags from the database
-            // Since 'tags' is not in the database schema, we need to handle it differently
             const tagsString = data.availability && typeof data.availability === 'object' && 'tags' in data.availability 
               ? (data.availability as any).tags?.join(', ') || ''
               : '';
@@ -214,7 +235,7 @@ export function ServiceForm({ serviceId, onSuccess }: ServiceFormProps) {
       setUploading(true);
       setImageLoadError(null);
       
-      // Make sure to use a bucket that exists
+      // Upload the image
       const imageUrl = await uploadImage(file, 'services', 'service_images');
 
       if (imageUrl) {
@@ -329,22 +350,21 @@ export function ServiceForm({ serviceId, onSuccess }: ServiceFormProps) {
   };
 
   // Display error if there's an issue with the bucket
-  if (imageLoadError) {
+  if (imageLoadError && !bucketExists) {
     return (
       <div className="space-y-6">
         <div className="bg-red-50 border border-red-200 rounded-md p-4">
           <div className="flex items-start">
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">Image Upload Error</h3>
+              <h3 className="text-sm font-medium text-red-800">Storage Setup Incomplete</h3>
               <div className="mt-2 text-sm text-red-700">
                 <p>{imageLoadError}</p>
-                <p className="mt-2">Please contact your administrator to ensure the storage buckets are properly configured.</p>
               </div>
             </div>
           </div>
         </div>
         
-        <Button onClick={() => setImageLoadError(null)}>
+        <Button onClick={() => window.location.reload()}>
           Try Again
         </Button>
       </div>
@@ -553,7 +573,7 @@ export function ServiceForm({ serviceId, onSuccess }: ServiceFormProps) {
                           accept="image/*"
                           className="hidden"
                           onChange={handleImageUpload}
-                          disabled={uploading}
+                          disabled={uploading || !bucketExists}
                         />
                       </label>
                     </div>
@@ -622,7 +642,7 @@ export function ServiceForm({ serviceId, onSuccess }: ServiceFormProps) {
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading || uploading}>
+            <Button type="submit" disabled={isLoading || uploading || !bucketExists}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {serviceId ? 'Update Service' : 'Create Service'}
             </Button>
