@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -13,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
-import { Menu, Search, Bell, MessageSquare, User, LogOut, ChevronDown } from "lucide-react";
+import { Menu, Search, Bell, MessageSquare, User, LogOut, ChevronDown, UserRound } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
 import { SERVICES } from "@/services/mockData";
 import { useOnClickOutside } from "@/hooks/use-click-outside";
@@ -168,6 +167,20 @@ export function Navbar() {
                 icon={<MessageSquare className="h-5 w-5" />}
                 aria-label="Messages"
               />
+              
+              {/* Add Provider Profile shortcut button */}
+              {user.role === "provider" && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate("/provider/profile")}
+                  title="Provider Profile"
+                  className="relative"
+                >
+                  <UserRound className="h-5 w-5" />
+                </Button>
+              )}
+              
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center gap-2 px-2">

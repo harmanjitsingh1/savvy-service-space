@@ -20,6 +20,9 @@ api_url = "http://localhost"
 
 [storage]
 enabled = true
+bucket_definitions = [
+  { name = "services", public = true, file_size_limit = "5mb", allowed_mime_types = ["image/png", "image/jpeg", "image/jpg", "image/webp"] }
+]
 
 [auth]
 enabled = true

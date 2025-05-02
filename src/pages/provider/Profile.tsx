@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { ProviderLayout } from "@/components/provider/ProviderLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -109,7 +108,11 @@ export default function ProviderProfilePage() {
             <div className="flex flex-col items-center sm:items-start sm:flex-row sm:justify-start gap-6">
               <div className="relative group">
                 <Avatar className="w-32 h-32">
-                  <AvatarImage src={user?.image} alt={user?.name || 'Profile'} />
+                  <AvatarImage 
+                    src={user?.image} 
+                    alt={user?.name || 'Profile'} 
+                    className="object-cover" 
+                  />
                   <AvatarFallback className="text-4xl">
                     <UserIcon className="h-16 w-16" />
                   </AvatarFallback>
