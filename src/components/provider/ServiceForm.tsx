@@ -69,8 +69,8 @@ const serviceSchema = z.object({
   category: z.string().min(1, 'Please select a category'),
   description: z.string().min(10, 'Description must be at least 10 characters'),
   tags: z.string().optional(),
-  price: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
-    message: 'Price must be a positive number',
+  price: z.string().refine((val) => !isNaN(parseInt(val)) && parseInt(val) > 0, {
+    message: 'Price must be a positive whole number',
   }),
   duration: z.string().refine((val) => !isNaN(parseInt(val)) && parseInt(val) > 0, {
     message: 'Duration must be a positive number',
@@ -92,6 +92,7 @@ export function ServiceForm({ serviceId, onSuccess }: ServiceFormProps) {
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
+  const [imageLoadError, setImageLoadError] = useState<string | null>(null);
 
   // Initialize form with default values
   const form = useForm<z.infer<typeof serviceSchema>>({
@@ -139,7 +140,7 @@ export function ServiceForm({ serviceId, onSuccess }: ServiceFormProps) {
               category: data.category,
               description: data.description || '',
               tags: tagsString,
-              price: data.price.toString(),
+              price: Math.round(data.price).toString(), // Convert to integer
               duration: data.duration.toString(),
               location: location,
               availableDays: [],
@@ -211,12 +212,20 @@ export function ServiceForm({ serviceId, onSuccess }: ServiceFormProps) {
 
     try {
       setUploading(true);
+      setImageLoadError(null);
+      
+      // Make sure to use a bucket that exists
       const imageUrl = await uploadImage(file, 'services', 'service_images');
 
       if (imageUrl) {
         setUploadedImages((prev) => [...prev, imageUrl]);
+        toast({
+          title: 'Image uploaded successfully',
+          description: 'Your image has been uploaded and compressed for better performance',
+        });
       }
     } catch (error: any) {
+      setImageLoadError(error.message);
       toast({
         title: 'Upload failed',
         description: error.message || 'Failed to upload image',
@@ -263,7 +272,7 @@ export function ServiceForm({ serviceId, onSuccess }: ServiceFormProps) {
         title: values.title,
         description: values.description,
         category: values.category,
-        price: parseFloat(values.price),
+        price: parseInt(values.price), // Store as integer
         duration: parseInt(values.duration),
         provider_id: user.id,
         availability,
@@ -318,6 +327,29 @@ export function ServiceForm({ serviceId, onSuccess }: ServiceFormProps) {
       setIsLoading(false);
     }
   };
+
+  // Display error if there's an issue with the bucket
+  if (imageLoadError) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+          <div className="flex items-start">
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">Image Upload Error</h3>
+              <div className="mt-2 text-sm text-red-700">
+                <p>{imageLoadError}</p>
+                <p className="mt-2">Please contact your administrator to ensure the storage buckets are properly configured.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <Button onClick={() => setImageLoadError(null)}>
+          Try Again
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -414,9 +446,25 @@ export function ServiceForm({ serviceId, onSuccess }: ServiceFormProps) {
                   name="price"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Price* ($)</FormLabel>
+                      <FormLabel>Price* (₹)</FormLabel>
                       <FormControl>
-                        <Input placeholder="29.99" type="number" step="0.01" min="0" {...field} />
+                        <Input 
+                          placeholder="999" 
+                          type="number" 
+                          step="1" 
+                          min="0" 
+                          {...field}
+                          onChange={(e) => {
+                            // Only allow integer values
+                            const value = e.target.value;
+                            const intValue = parseInt(value);
+                            if (!isNaN(intValue)) {
+                              field.onChange(intValue.toString());
+                            } else if (value === '') {
+                              field.onChange('');
+                            }
+                          }}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -468,6 +516,7 @@ export function ServiceForm({ serviceId, onSuccess }: ServiceFormProps) {
                         src={url}
                         alt={`Service ${index + 1}`}
                         className="object-cover w-full h-full"
+                        loading="lazy" // For better performance
                       />
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <Button
@@ -547,7 +596,7 @@ export function ServiceForm({ serviceId, onSuccess }: ServiceFormProps) {
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">Price:</span>
-                      <p>${parseFloat(form.watch('price') || '0').toFixed(2)}</p>
+                      <p>₹{form.watch('price') || '0'}</p>
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">Duration:</span>
