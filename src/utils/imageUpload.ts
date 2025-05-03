@@ -1,109 +1,138 @@
 
-import { supabase } from "@/integrations/supabase/client";
 import Compressor from 'compressorjs';
+import { supabase } from '@/integrations/supabase/client';
+import { v4 as uuidv4 } from 'uuid';
+import { toast } from "sonner";
 
-// Helper function to compress images before upload
-const compressImage = (file: File): Promise<File> => {
+/**
+ * Compress an image file before uploading
+ * @param file The image file to compress
+ * @returns A Promise that resolves to the compressed file
+ */
+export const compressImage = async (file: File): Promise<File> => {
   return new Promise((resolve, reject) => {
     new Compressor(file, {
-      quality: 0.8, // 0.8 means 80% quality
-      maxWidth: 1200,
-      maxHeight: 1200,
-      success(result) {
-        // Create a new file from the compressed blob
+      quality: 0.8,
+      maxWidth: 1920,
+      maxHeight: 1080,
+      success: (result) => {
         const compressedFile = new File([result], file.name, {
-          type: file.type,
+          type: result.type,
           lastModified: Date.now(),
         });
         resolve(compressedFile);
       },
-      error(err) {
+      error: (err) => {
         console.error('Image compression error:', err);
-        reject(err);
+        // If compression fails, return the original file
+        resolve(file);
       },
     });
   });
 };
 
-// Function to check if bucket exists
-const ensureBucketExists = async (bucket: string): Promise<boolean> => {
+/**
+ * Check if the bucket exists in Supabase storage and create it if it doesn't
+ * @param bucketName The name of the bucket to check and possibly create
+ */
+export const ensureBucketExists = async (bucketName: string): Promise<boolean> => {
   try {
     // Check if bucket exists
-    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+    const { data: buckets, error: listError } = await supabase
+      .storage
+      .listBuckets();
     
     if (listError) {
-      console.error('Error checking buckets:', listError);
-      throw new Error(`Error checking if bucket exists: ${listError.message}`);
+      console.error('Error listing buckets:', listError);
+      throw listError;
+    }
+
+    const bucketExists = buckets?.some(bucket => bucket.name === bucketName);
+    
+    if (!bucketExists) {
+      console.warn(`Bucket '${bucketName}' not found. Please ensure it exists in your Supabase project.`);
+      toast.error(`Storage bucket '${bucketName}' not found. Please contact your administrator.`);
+      return false;
     }
     
-    return buckets?.some(b => b.name === bucket) || false;
+    return true;
   } catch (error) {
-    console.error('Error checking if bucket exists:', error);
+    console.error('Error ensuring bucket exists:', error);
+    toast.error("Error checking storage bucket. Please try again later.");
     return false;
   }
 };
 
-export const uploadImage = async (file: File, bucket: string, folderPath?: string): Promise<string | null> => {
+/**
+ * Upload an image to Supabase storage
+ * @param file The file to upload
+ * @param bucketName The name of the bucket to upload to
+ * @returns A Promise that resolves to the URL of the uploaded image
+ */
+export const uploadImage = async (
+  file: File,
+  bucketName: string = 'services'
+): Promise<string | null> => {
   try {
-    if (!file) return null;
-    
-    // Check if the bucket exists
-    const bucketExists = await ensureBucketExists(bucket);
-    
+    // First, ensure the bucket exists
+    const bucketExists = await ensureBucketExists(bucketName);
     if (!bucketExists) {
-      throw new Error(`Bucket '${bucket}' does not exist. Please ensure the bucket is created in Supabase.`);
+      return null;
     }
     
-    // Compress the image before upload
+    // Compress the image before uploading
     const compressedFile = await compressImage(file);
     
-    // Create a unique file name
+    // Generate a unique filename
     const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
-    const filePath = folderPath ? `${folderPath}/${fileName}` : fileName;
+    const fileName = `${uuidv4()}.${fileExt}`;
+    const filePath = `${fileName}`;
     
-    // Upload compressed file to Supabase storage
-    const { data, error } = await supabase.storage
-      .from(bucket)
-      .upload(filePath, compressedFile, {
-        cacheControl: '3600',
-        upsert: false
-      });
+    // Upload the file to Supabase storage
+    const { data, error } = await supabase
+      .storage
+      .from(bucketName)
+      .upload(filePath, compressedFile);
     
     if (error) {
-      console.error('Error uploading file:', error);
-      throw new Error(`Error uploading file: ${error.message}`);
+      console.error('Image upload error:', error);
+      toast.error("Failed to upload image. Please try again.");
+      return null;
     }
-
-    // Get public URL for the file
-    const { data: { publicUrl } } = supabase.storage
-      .from(bucket)
-      .getPublicUrl(data.path);
+    
+    // Get the public URL of the uploaded file
+    const { data: { publicUrl } } = supabase
+      .storage
+      .from(bucketName)
+      .getPublicUrl(filePath);
     
     return publicUrl;
   } catch (error) {
-    console.error('Upload failed:', error);
-    throw error;
+    console.error('Error uploading image:', error);
+    toast.error("An unexpected error occurred while uploading your image.");
+    return null;
   }
 };
 
-export const deleteImage = async (url: string, bucket: string): Promise<void> => {
-  try {
-    // Extract path from URL
-    const path = url.split(`${bucket}/`)[1];
-    if (!path) return;
-    
-    // Delete file from Supabase storage
-    const { error } = await supabase.storage
-      .from(bucket)
-      .remove([path]);
-    
-    if (error) {
-      console.error('Error deleting file:', error);
-      throw new Error(`Error deleting file: ${error.message}`);
-    }
-  } catch (error) {
-    console.error('Delete failed:', error);
-    throw error;
+/**
+ * Upload multiple images to Supabase storage
+ * @param files The array of files to upload
+ * @param bucketName The name of the bucket to upload to
+ * @returns A Promise that resolves to an array of URLs of the uploaded images
+ */
+export const uploadMultipleImages = async (
+  files: File[],
+  bucketName: string = 'services'
+): Promise<string[]> => {
+  // Ensure the bucket exists before attempting uploads
+  const bucketExists = await ensureBucketExists(bucketName);
+  if (!bucketExists) {
+    return [];
   }
+  
+  const uploadPromises = files.map(file => uploadImage(file, bucketName));
+  const results = await Promise.all(uploadPromises);
+  
+  // Filter out any null values (failed uploads)
+  return results.filter((url): url is string => url !== null);
 };

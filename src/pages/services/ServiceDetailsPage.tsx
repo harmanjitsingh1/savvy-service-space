@@ -1,472 +1,226 @@
-import { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+
+import React, { useState } from "react";
+import { useParams } from "react-router-dom";
+import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MainLayout } from "@/components/layout/MainLayout";
-import { useAuth } from "@/contexts/AuthContext";
-import { getServiceById, getReviewsForService } from "@/services/mockData";
-import { Service, Review } from "@/types";
-import { 
-  Clock, 
-  MapPin, 
-  DollarSign, 
-  Star, 
-  MessageSquare, 
-  Share2, 
-  Heart,
-  Calendar,
-  ArrowLeft,
-  Phone,
-  Mail,
-  ExternalLink,
-  IndianRupee,
-} from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
 import { BookingDialog } from "@/components/booking/BookingDialog";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { Calendar, Clock, MessageSquare, Star } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ShareDialog } from "@/components/sharing/ShareDialog";
-import { cn } from "@/lib/utils";
-
-const createProperUuid = (id: string | undefined): string => {
-  if (!id) return "";
-  
-  if (id.includes('-')) return id;
-  
-  return `00000000-0000-0000-0000-${id.padStart(12, '0')}`;
-};
+import { Service } from "@/types";
 
 export default function ServiceDetailsPage() {
-  const { serviceId } = useParams<{ serviceId: string }>();
-  const [service, setService] = useState<Service | null>(null);
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const { isAuthenticated, user } = useAuth();
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  
-  const formattedServiceId = serviceId ? createProperUuid(serviceId) : undefined;
+  const { id } = useParams<{ id: string }>();
+  const [isBookingOpen, setIsBookingOpen] = useState(false);
 
-  useEffect(() => {
-    if (serviceId) {
-      const fetchedService = getServiceById(serviceId);
-      if (fetchedService) {
-        setService(fetchedService);
-        setReviews(getReviewsForService(serviceId));
-      }
-      setIsLoading(false);
-    }
-  }, [serviceId]);
-
-  const { data: isSaved } = useQuery({
-    queryKey: ["savedService", formattedServiceId, user?.id],
+  const { data: service, isLoading, error } = useQuery({
+    queryKey: ['service', id],
     queryFn: async () => {
-      if (!user || !formattedServiceId) return false;
+      if (!id) throw new Error('Service ID is required');
       
-      console.log("Checking if service is saved:", { serviceId: formattedServiceId, userId: user.id });
-      try {
-        const { data, error } = await supabase
-          .from("saved_services")
-          .select()
-          .eq("user_id", user.id)
-          .eq("service_id", formattedServiceId);
-          
-        if (error) {
-          console.error("Error checking saved status:", error);
-          return false;
-        }
-        
-        return data && data.length > 0;
-      } catch (error) {
-        console.error("Exception checking saved status:", error);
-        return false;
-      }
-    },
-    enabled: !!user && !!formattedServiceId,
-  });
-
-  const toggleSave = useMutation({
-    mutationFn: async () => {
-      if (!user || !formattedServiceId) throw new Error("User not authenticated or invalid service");
+      const { data, error } = await supabase
+        .from('provider_services')
+        .select(`
+          *,
+          profiles:provider_id (name, image)
+        `)
+        .eq('id', id)
+        .single();
       
-      console.log("Toggling save for service:", { serviceId: formattedServiceId, isSaved });
-      
-      try {
-        if (isSaved) {
-          // Delete the saved service
-          const { error } = await supabase
-            .from("saved_services")
-            .delete()
-            .eq("user_id", user.id)
-            .eq("service_id", formattedServiceId);
-          
-          if (error) throw error;
-          return { success: true, isSaved: false };
-        } else {
-          // Insert the saved service
-          const { error } = await supabase
-            .from("saved_services")
-            .insert({
-              user_id: user.id,
-              service_id: formattedServiceId
-            });
-          
-          if (error) throw error;
-          return { success: true, isSaved: true };
-        }
-      } catch (error) {
-        console.error("Error toggling save:", error);
+      if (error) {
+        console.error('Error fetching service:', error);
         throw error;
       }
-    },
-    onSuccess: (data) => {
-      // Update the cache with the new value
-      queryClient.setQueryData(["savedService", formattedServiceId, user?.id], data.isSaved);
+
+      // Transform to Service type
+      const serviceData: Service = {
+        id: data.id,
+        title: data.title,
+        description: data.description || '',
+        price: Number(data.price),
+        category: data.category,
+        providerId: data.provider_id,
+        providerName: data.profiles?.name || 'Provider',
+        providerImage: data.profiles?.image || undefined,
+        images: data.images || [],
+        rating: 0, // Default rating 
+        reviewCount: 0, // Default review count
+        location: 'Local Area', // Default location
+        duration: data.duration,
+        available: true,
+        createdAt: data.created_at
+      };
       
-      toast({
-        title: data.isSaved ? "Service saved" : "Service removed from saved",
-        description: data.isSaved 
-          ? "The service has been added to your saved list" 
-          : "The service has been removed from your saved list",
-      });
+      return serviceData;
     },
-    onError: (error) => {
-      console.error("Error toggling save:", error);
-      toast({
-        title: "Error",
-        description: "Failed to save service. Please try again.",
-        variant: "destructive",
-      });
-    }
+    enabled: !!id,
   });
-
-  const handleBookNow = () => {
-    if (!isAuthenticated) {
-      toast({
-        title: "Login required",
-        description: "Please log in to book this service",
-        action: (
-          <Button 
-            size="sm" 
-            variant="outline" 
-            onClick={() => navigate("/login")}
-          >
-            Login
-          </Button>
-        ),
-      });
-      return;
-    }
-    navigate(`/booking/${serviceId}`);
-  };
-
-  const handleSaveService = () => {
-    if (!isAuthenticated) {
-      toast({
-        title: "Login required",
-        description: "Please log in to save services",
-      });
-      return;
-    }
-    toggleSave.mutate();
-  };
-
-  const handleContactProvider = () => {
-    if (!isAuthenticated) {
-      toast({
-        title: "Login required",
-        description: "Please log in to contact providers",
-      });
-      return;
-    }
-    navigate(`/messages/${service?.providerId}`);
-  };
 
   if (isLoading) {
     return (
       <MainLayout>
-        <div className="container py-8">
-          <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-muted rounded w-1/3"></div>
-            <div className="h-64 bg-muted rounded"></div>
-            <div className="h-8 bg-muted rounded w-1/4"></div>
-            <div className="h-24 bg-muted rounded"></div>
-          </div>
+        <div className="container py-8 flex items-center justify-center min-h-[60vh]">
+          <p>Loading service details...</p>
         </div>
       </MainLayout>
     );
   }
 
-  if (!service) {
+  if (error || !service) {
     return (
       <MainLayout>
-        <div className="container py-16 text-center">
-          <h2 className="text-2xl font-bold mb-4">Service not found</h2>
-          <p className="mb-8 text-muted-foreground">
-            The service you are looking for does not exist or has been removed.
-          </p>
-          <Button onClick={() => navigate("/services")}>
-            <ArrowLeft className="mr-2 h-4 w-4" /> Browse Services
-          </Button>
+        <div className="container py-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Error</CardTitle>
+              <CardDescription>
+                We couldn't load this service. It might have been removed or doesn't exist.
+              </CardDescription>
+            </CardHeader>
+            <CardFooter>
+              <Button variant="outline" onClick={() => window.history.back()}>Go Back</Button>
+            </CardFooter>
+          </Card>
         </div>
       </MainLayout>
     );
   }
-
-  const serviceWithFormattedIds = service ? {
-    ...service,
-    id: formattedServiceId || service.id,
-    providerId: service.providerId ? createProperUuid(service.providerId) : service.providerId
-  } : null;
 
   return (
     <MainLayout>
       <div className="container py-8">
-        <div className="flex items-center mb-6 text-sm">
-          <Link to="/" className="text-muted-foreground hover:text-primary">Home</Link>
-          <span className="mx-2 text-muted-foreground">/</span>
-          <Link to="/services" className="text-muted-foreground hover:text-primary">Services</Link>
-          <span className="mx-2 text-muted-foreground">/</span>
-          <Link to={`/services?category=${encodeURIComponent(service?.category || '')}`} className="text-muted-foreground hover:text-primary">
-            {service?.category}
-          </Link>
-          <span className="mx-2 text-muted-foreground">/</span>
-          <span className="font-medium">{service?.title}</span>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-            <h1 className="text-2xl md:text-3xl font-bold mb-4">{service.title}</h1>
-            
-            <div className="flex flex-wrap items-center gap-4 mb-6">
-              <Badge variant="outline" className="bg-secondary text-secondary-foreground">
-                {service.category}
-              </Badge>
-              
-              <div className="flex items-center">
-                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-                <span className="font-medium">{service.rating}</span>
-                <span className="text-muted-foreground ml-1">({service.reviewCount} reviews)</span>
-              </div>
-              
-              <div className="flex items-center text-muted-foreground">
-                <MapPin className="h-4 w-4 mr-1" />
-                <span>{service.location}</span>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="md:col-span-2 space-y-6">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">{service.title}</h1>
+              <div className="flex items-center mt-2 space-x-2">
+                <Badge variant="outline" className="bg-secondary text-secondary-foreground">
+                  {service.category}
+                </Badge>
+                {service.rating > 0 && (
+                  <div className="flex items-center">
+                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
+                    <span>{service.rating}</span>
+                    <span className="text-muted-foreground ml-1">({service.reviewCount})</span>
+                  </div>
+                )}
               </div>
             </div>
 
-            <Carousel className="mb-8">
-              <CarouselContent>
-                {service.images.map((image, index) => (
-                  <CarouselItem key={index}>
-                    <div className="relative h-64 md:h-80 w-full rounded-lg overflow-hidden">
-                      <img 
-                        src={image} 
-                        alt={`${service.title} - image ${index + 1}`} 
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              <CarouselPrevious className="left-2" />
-              <CarouselNext className="right-2" />
-            </Carousel>
+            {service.images && service.images.length > 0 ? (
+              <Carousel className="w-full">
+                <CarouselContent>
+                  {service.images.map((image, index) => (
+                    <CarouselItem key={index}>
+                      <AspectRatio ratio={16 / 9}>
+                        <img 
+                          src={image} 
+                          alt={`${service.title} - image ${index + 1}`}
+                          className="rounded-md object-cover w-full h-full"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "/placeholder.svg";
+                          }}
+                        />
+                      </AspectRatio>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious />
+                <CarouselNext />
+              </Carousel>
+            ) : (
+              <div className="bg-muted rounded-md">
+                <AspectRatio ratio={16 / 9}>
+                  <div className="flex items-center justify-center h-full">
+                    No images available
+                  </div>
+                </AspectRatio>
+              </div>
+            )}
 
-            <Tabs defaultValue="description" className="mb-8">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="description">Description</TabsTrigger>
-                <TabsTrigger value="reviews">Reviews ({reviews.length})</TabsTrigger>
-                <TabsTrigger value="provider">Provider</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="description" className="pt-4">
-                <h3 className="text-lg font-medium mb-2">Service Details</h3>
-                <p className="text-muted-foreground mb-4">
-                  {service.description}
-                </p>
-                
-                <div className="grid grid-cols-2 gap-4 mt-6">
-                  <div className="flex items-center">
-                    <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center mr-4">
-                      <Clock className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Duration</p>
-                      <p className="font-medium">{service.duration} hours</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center">
-                    <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center mr-4">
-                      <IndianRupee className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Price</p>
-                      <p className="font-medium">₹{service.price}/hr</p>
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="reviews" className="pt-4">
-                {reviews.length > 0 ? (
-                  <div className="space-y-6">
-                    {reviews.map((review) => (
-                      <div key={review.id} className="pb-6 border-b last:border-b-0">
-                        <div className="flex justify-between mb-2">
-                          <div className="flex items-center">
-                            <Avatar className="h-10 w-10 mr-3">
-                              <AvatarImage src={review.userImage} alt={review.userName} />
-                              <AvatarFallback>{review.userName.substring(0, 2)}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-medium">{review.userName}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {new Date(review.createdAt).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center">
-                            {Array.from({ length: 5 }).map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`h-4 w-4 ${
-                                  i < review.rating
-                                    ? "fill-yellow-400 text-yellow-400"
-                                    : "text-muted-foreground"
-                                }`}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                        <p className="text-muted-foreground">{review.comment}</p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <h3 className="font-medium mb-2">No reviews yet</h3>
-                    <p className="text-muted-foreground">
-                      Be the first one to review this service
-                    </p>
-                  </div>
-                )}
-              </TabsContent>
-              
-              <TabsContent value="provider" className="pt-4">
-                <div className="flex items-start">
-                  <Avatar className="h-16 w-16 mr-4">
-                    <AvatarImage src={service.providerImage} alt={service.providerName} />
-                    <AvatarFallback>{service.providerName.substring(0, 2)}</AvatarFallback>
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold">About this service</h2>
+              <p className="text-muted-foreground whitespace-pre-line">
+                {service.description || "No description provided."}
+              </p>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Service Provider</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center space-x-4">
+                  <Avatar className="h-12 w-12">
+                    <AvatarImage src={service.providerImage || "/placeholder.svg"} />
+                    <AvatarFallback>
+                      {service.providerName ? service.providerName.substring(0, 2) : "SP"}
+                    </AvatarFallback>
                   </Avatar>
                   <div>
-                    <h3 className="text-lg font-medium">{service.providerName}</h3>
-                    <p className="text-sm text-muted-foreground mb-2">Service Provider</p>
-                    <div className="flex items-center mb-4">
-                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-                      <span className="font-medium">{service.rating}</span>
-                      <span className="text-muted-foreground ml-1">({service.reviewCount} reviews)</span>
-                    </div>
-                    <Button variant="outline" size="sm" onClick={handleContactProvider}>
-                      <MessageSquare className="h-4 w-4 mr-2" /> Contact Provider
-                    </Button>
+                    <h3 className="font-medium">{service.providerName}</h3>
+                    <p className="text-sm text-muted-foreground">Service Provider</p>
                   </div>
                 </div>
-                
-                <Separator className="my-6" />
-                
-                <div className="space-y-4">
-                  <h4 className="font-medium">Contact Information</h4>
-                  <div className="flex items-center">
-                    <Phone className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span>Contact via messaging</span>
-                  </div>
-                  <div className="flex items-center">
-                    <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span>Contact via messaging</span>
-                  </div>
-                  <div className="flex items-center">
-                    <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span>{service.location}</span>
-                  </div>
-                </div>
-                
-                <div className="mt-6">
-                  <Button variant="outline" className="w-full" onClick={() => navigate(`/provider/${service.providerId}`)}>
-                    <ExternalLink className="h-4 w-4 mr-2" /> View Provider Profile
-                  </Button>
-                </div>
-              </TabsContent>
-            </Tabs>
+              </CardContent>
+              <CardFooter>
+                <Button variant="outline" className="w-full">
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Contact Provider
+                </Button>
+              </CardFooter>
+            </Card>
           </div>
 
           <div>
-            <div className="bg-background rounded-lg border p-6 sticky top-24">
-              <h3 className="text-lg font-bold mb-4">Book This Service</h3>
-              
-              <div className="space-y-4 mb-6">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Price per hour</span>
-                  <span className="font-medium flex items-center">
-                    <IndianRupee className="h-3 w-3 mr-1" />
-                    {service?.price}
-                  </span>
+            <Card className="sticky top-8">
+              <CardHeader>
+                <CardTitle>Book this service</CardTitle>
+                <CardDescription>
+                  Book now and get your service scheduled
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Price</span>
+                  <span className="text-2xl font-bold">₹{service.price}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Estimated duration</span>
-                  <span className="font-medium">{service?.duration} hours</span>
+                
+                <div className="border-t pt-4">
+                  <h4 className="font-medium mb-2">Service details</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center text-sm">
+                      <Clock className="h-4 w-4 mr-2" />
+                      <span>{service.duration} hour(s)</span>
+                    </div>
+                    <div className="flex items-center text-sm">
+                      <Calendar className="h-4 w-4 mr-2" />
+                      <span>Available for booking</span>
+                    </div>
+                  </div>
                 </div>
-                <Separator />
-                <div className="flex justify-between">
-                  <span>Total estimate</span>
-                  <span className="font-bold flex items-center">
-                    <IndianRupee className="h-3 w-3 mr-1" />
-                    {service?.price ? service.price * service.duration : 0}
-                  </span>
-                </div>
-              </div>
-              
-              <div className="space-y-3">
-                {serviceWithFormattedIds && <BookingDialog service={serviceWithFormattedIds} />}
-              
-                <div className="flex gap-3">
-                  <Button variant="outline" className="flex-1" onClick={handleContactProvider}>
-                    <MessageSquare className="h-4 w-4 mr-2" /> Message
-                  </Button>
-                  <Button 
-                    variant={isSaved ? "default" : "outline"}
-                    className="flex-1" 
-                    onClick={handleSaveService}
-                  >
-                    <Heart 
-                      className={cn(
-                        "h-4 w-4 mr-2",
-                        isSaved && "fill-white text-white"
-                      )} 
-                    /> 
-                    {isSaved ? "Saved" : "Save"}
-                  </Button>
-                </div>
-              
-                <div className="mt-2">
-                  {serviceId && <ShareDialog serviceId={serviceId} serviceTitle={service?.title || ""} />}
-                </div>
-              </div>
-            </div>
+              </CardContent>
+              <CardFooter>
+                <Button className="w-full" onClick={() => setIsBookingOpen(true)}>
+                  Book Now
+                </Button>
+              </CardFooter>
+            </Card>
           </div>
         </div>
+
+        {service && (
+          <BookingDialog
+            open={isBookingOpen}
+            onOpenChange={setIsBookingOpen}
+            service={service}
+          />
+        )}
       </div>
     </MainLayout>
   );

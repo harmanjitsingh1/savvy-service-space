@@ -32,7 +32,7 @@ export function ServiceCard({ service, className }: ServiceCardProps) {
             }}
           />
           <Badge className="absolute top-2 right-2">
-            ${service.price}/hr
+            ₹{service.price}/hr
           </Badge>
         </div>
         <CardHeader className="p-4">
@@ -40,11 +40,13 @@ export function ServiceCard({ service, className }: ServiceCardProps) {
             <Badge variant="outline" className="bg-secondary text-secondary-foreground">
               {service.category}
             </Badge>
-            <div className="flex items-center text-sm">
-              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-              <span>{service.rating}</span>
-              <span className="text-muted-foreground ml-1">({service.reviewCount})</span>
-            </div>
+            {service.rating > 0 && (
+              <div className="flex items-center text-sm">
+                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
+                <span>{service.rating}</span>
+                <span className="text-muted-foreground ml-1">({service.reviewCount})</span>
+              </div>
+            )}
           </div>
           <CardTitle className="text-lg mt-2">{service.title}</CardTitle>
           <CardDescription className="line-clamp-2">

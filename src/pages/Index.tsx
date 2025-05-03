@@ -268,3 +268,23 @@ export default function Index() {
     </MainLayout>
   );
 }
+
+export function FeaturedServices() {
+  return (
+    <section className="py-12 bg-gray-50 dark:bg-gray-900">
+      <div className="container">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight">Featured Services</h2>
+            <p className="text-muted-foreground mt-2">Discover top-rated services in your area</p>
+          </div>
+          <Link to="/services" className="mt-4 md:mt-0 underline">
+            View all services
+          </Link>
+        </div>
+        
+        <ServicesGrid limit={6} />
+      </div>
+    </section>
+  );
+}

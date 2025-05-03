@@ -54,19 +54,30 @@ export function ProviderServices() {
       if (error) throw error;
       
       if (serviceData?.images && serviceData.images.length > 0) {
+        // Extract file paths from full URLs
         const imagePaths = serviceData.images.map((url: string) => {
-          const parts = url.split('services/');
-          return parts.length > 1 ? parts[1] : null;
+          // Handle both full URLs and storage paths
+          if (url.includes('/storage/v1/object/public/')) {
+            const parts = url.split('/storage/v1/object/public/services/');
+            return parts.length > 1 ? parts[1] : null;
+          } else {
+            // For paths that might not be full URLs
+            const parts = url.split('services/');
+            return parts.length > 1 ? parts[1] : null;
+          }
         }).filter(Boolean);
         
         if (imagePaths.length > 0) {
-          const { error: storageError } = await supabase
-            .storage
-            .from('services')
-            .remove(imagePaths);
-          
-          if (storageError) {
-            console.error('Error deleting service images:', storageError);
+          // Delete each image from storage
+          for (const path of imagePaths) {
+            const { error: storageError } = await supabase
+              .storage
+              .from('services')
+              .remove([path]);
+            
+            if (storageError) {
+              console.error('Error deleting service image:', storageError);
+            }
           }
         }
       }
@@ -149,7 +160,7 @@ export function ProviderServices() {
                         alt={service.title} 
                         className="h-full w-full object-cover"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = 'https://via.placeholder.com/64';
+                          (e.target as HTMLImageElement).src = '/placeholder.svg';
                         }}
                       />
                     </div>
