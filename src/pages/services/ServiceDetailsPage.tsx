@@ -23,40 +23,52 @@ export default function ServiceDetailsPage() {
     queryFn: async () => {
       if (!id) throw new Error('Service ID is required');
       
-      const { data, error } = await supabase
+      // First, fetch the service details
+      const { data: serviceData, error: serviceError } = await supabase
         .from('provider_services')
-        .select(`
-          *,
-          profiles:provider_id (name, image)
-        `)
+        .select('*')
         .eq('id', id)
         .single();
       
-      if (error) {
-        console.error('Error fetching service:', error);
-        throw error;
+      if (serviceError) {
+        console.error('Error fetching service:', serviceError);
+        throw serviceError;
       }
+      
+      // Fetch the provider profile separately
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('name, image')
+        .eq('id', serviceData.provider_id)
+        .single();
+      
+      if (profileError) {
+        console.error('Error fetching provider profile:', profileError);
+      }
+      
+      const providerName = profileData?.name || 'Provider';
+      const providerImage = profileData?.image;
 
       // Transform to Service type
-      const serviceData: Service = {
-        id: data.id,
-        title: data.title,
-        description: data.description || '',
-        price: Number(data.price),
-        category: data.category,
-        providerId: data.provider_id,
-        providerName: data.profiles?.name || 'Provider',
-        providerImage: data.profiles?.image || undefined,
-        images: data.images || [],
+      const transformedService: Service = {
+        id: serviceData.id,
+        title: serviceData.title,
+        description: serviceData.description || '',
+        price: Number(serviceData.price),
+        category: serviceData.category,
+        providerId: serviceData.provider_id,
+        providerName: providerName,
+        providerImage: providerImage,
+        images: serviceData.images || [],
         rating: 0, // Default rating 
         reviewCount: 0, // Default review count
         location: 'Local Area', // Default location
-        duration: data.duration,
+        duration: serviceData.duration,
         available: true,
-        createdAt: data.created_at
+        createdAt: serviceData.created_at
       };
       
-      return serviceData;
+      return transformedService;
     },
     enabled: !!id,
   });
@@ -216,9 +228,8 @@ export default function ServiceDetailsPage() {
 
         {service && (
           <BookingDialog
-            open={isBookingOpen}
-            onOpenChange={setIsBookingOpen}
             service={service}
+            trigger={null}
           />
         )}
       </div>

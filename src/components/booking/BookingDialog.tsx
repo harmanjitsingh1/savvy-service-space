@@ -1,4 +1,5 @@
 
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,22 +12,27 @@ import { Button } from "@/components/ui/button";
 import { Service } from "@/types";
 import { BookingForm } from "./BookingForm";
 import { Calendar } from "lucide-react";
-import { useState } from "react";
 
 interface BookingDialogProps {
   service: Service;
   trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function BookingDialog({ service, trigger }: BookingDialogProps) {
-  const [open, setOpen] = useState(false);
+export function BookingDialog({ service, trigger, open: externalOpen, onOpenChange: externalOnOpenChange }: BookingDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  
+  // Use either external or internal state
+  const isOpen = externalOpen !== undefined ? externalOpen : internalOpen;
+  const setOpen = externalOnOpenChange || setInternalOpen;
 
   const handleBookingSuccess = () => {
     setOpen(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={isOpen} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || (
           <Button className="w-full">

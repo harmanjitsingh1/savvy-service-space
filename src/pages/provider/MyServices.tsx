@@ -3,6 +3,9 @@ import React from "react";
 import { ProviderLayout } from "@/components/provider/ProviderLayout";
 import { ServicesGrid } from "@/components/services/ServicesGrid";
 import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+import { Plus } from "lucide-react";
 
 export default function MyServicesPage() {
   const { user } = useAuth();
@@ -10,7 +13,15 @@ export default function MyServicesPage() {
   return (
     <ProviderLayout>
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold tracking-tight">My Services</h1>
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold tracking-tight">My Services</h1>
+          <Link to="/provider/services/add">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" /> Add New Service
+            </Button>
+          </Link>
+        </div>
+        
         <ServicesGrid providerId={user?.id} />
       </div>
     </ProviderLayout>

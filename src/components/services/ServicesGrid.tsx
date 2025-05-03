@@ -28,8 +28,7 @@ export function ServicesGrid({ providerId, category, limit, showEmpty = true }: 
           duration,
           images,
           provider_id,
-          created_at,
-          profiles:provider_id (name, image)
+          created_at
         `)
         .order('created_at', { ascending: false });
 
@@ -45,31 +44,57 @@ export function ServicesGrid({ providerId, category, limit, showEmpty = true }: 
         query = query.limit(limit);
       }
 
-      const { data, error } = await query;
+      const { data: servicesData, error } = await query;
       
       if (error) {
         console.error('Error fetching services:', error);
         throw error;
       }
 
+      // Fetch provider profiles separately to avoid the relation issue
+      const providerIds = [...new Set(servicesData.map(service => service.provider_id))];
+      
+      let providerProfiles: Record<string, { name: string, image?: string }> = {};
+      
+      if (providerIds.length > 0) {
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, name, image')
+          .in('id', providerIds);
+          
+        if (profilesError) {
+          console.error('Error fetching provider profiles:', profilesError);
+        } else if (profiles) {
+          // Create a map of provider_id to provider profile
+          providerProfiles = profiles.reduce((acc, profile) => {
+            acc[profile.id] = { name: profile.name || 'Provider', image: profile.image };
+            return acc;
+          }, {} as Record<string, { name: string, image?: string }>);
+        }
+      }
+
       // Transform the data to match the Service type
-      const formattedServices: Service[] = data.map(service => ({
-        id: service.id,
-        title: service.title,
-        description: service.description || '',
-        price: Number(service.price),
-        category: service.category,
-        providerId: service.provider_id,
-        providerName: service.profiles?.name || 'Provider',
-        providerImage: service.profiles?.image || undefined,
-        images: service.images || [],
-        rating: 0, // Default rating since we don't have reviews yet
-        reviewCount: 0, // Default review count
-        location: 'Local Area', // Default location
-        duration: service.duration,
-        available: true,
-        createdAt: service.created_at
-      }));
+      const formattedServices: Service[] = servicesData.map(service => {
+        const providerProfile = providerProfiles[service.provider_id] || { name: 'Provider', image: undefined };
+        
+        return {
+          id: service.id,
+          title: service.title,
+          description: service.description || '',
+          price: Number(service.price),
+          category: service.category,
+          providerId: service.provider_id,
+          providerName: providerProfile.name,
+          providerImage: providerProfile.image,
+          images: service.images || [],
+          rating: 0, // Default rating since we don't have reviews yet
+          reviewCount: 0, // Default review count
+          location: 'Local Area', // Default location
+          duration: service.duration,
+          available: true,
+          createdAt: service.created_at
+        };
+      });
 
       return formattedServices;
     }

@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { CATEGORIES, SERVICES } from "@/services/mockData";
 import { Badge } from "@/components/ui/badge";
 import { Search, ArrowRight, CheckCircle, Star, Zap, ShieldCheck } from "lucide-react";
+import { ServicesGrid } from "@/components/services/ServicesGrid"; // Import the ServicesGrid component
 
 export default function Index() {
   const [searchQuery, setSearchQuery] = useState("");
