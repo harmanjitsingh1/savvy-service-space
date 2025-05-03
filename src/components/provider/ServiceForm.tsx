@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -93,23 +92,30 @@ export function ServiceForm({ serviceId, onSuccess }: ServiceFormProps) {
   const [uploading, setUploading] = useState(false);
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [imageLoadError, setImageLoadError] = useState<string | null>(null);
-  const [bucketExists, setBucketExists] = useState<boolean>(true);
+  const [bucketExists, setBucketExists] = useState<boolean>(false);
 
   // Check if the bucket exists
   useEffect(() => {
     const checkBucketExists = async () => {
       try {
-        const { data, error } = await supabase.storage.listBuckets();
-        if (error) throw error;
+        // Try to list items in the bucket to see if it exists and we have access
+        const { data, error } = await supabase.storage
+          .from('services')
+          .list();
         
-        const exists = data.some(bucket => bucket.name === 'services');
-        setBucketExists(exists);
-        
-        if (!exists) {
-          setImageLoadError('Services storage bucket not found. Please contact your administrator.');
+        if (error) {
+          console.error('Error checking bucket:', error);
+          setBucketExists(false);
+          setImageLoadError('Services storage bucket is not accessible. Please try again later or contact support.');
+          return;
         }
+        
+        setBucketExists(true);
+        setImageLoadError(null);
       } catch (error: any) {
         console.error('Error checking bucket exists:', error);
+        setBucketExists(false);
+        setImageLoadError('Error checking storage bucket. Please try again later.');
       }
     };
     
@@ -235,17 +241,54 @@ export function ServiceForm({ serviceId, onSuccess }: ServiceFormProps) {
       setUploading(true);
       setImageLoadError(null);
       
-      // Upload the image
-      const imageUrl = await uploadImage(file, 'services', 'service_images');
-
-      if (imageUrl) {
-        setUploadedImages((prev) => [...prev, imageUrl]);
-        toast({
-          title: 'Image uploaded successfully',
-          description: 'Your image has been uploaded and compressed for better performance',
+      // Upload the image directly to the bucket
+      const fileExt = file.name.split('.').pop();
+      const fileName = `service_images/${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+      
+      // First compress the image
+      const compressedFile = await new Promise<File>((resolve, reject) => {
+        new Compressor(file, {
+          quality: 0.8,
+          maxWidth: 1200,
+          maxHeight: 1200,
+          success(result) {
+            const compressedFile = new File([result], file.name, {
+              type: file.type,
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          },
+          error(err) {
+            reject(err);
+          },
         });
+      });
+      
+      // Upload directly to Supabase storage
+      const { data, error } = await supabase.storage
+        .from('services')
+        .upload(fileName, compressedFile, {
+          cacheControl: '3600',
+          upsert: false
+        });
+      
+      if (error) {
+        throw error;
       }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('services')
+        .getPublicUrl(data!.path);
+      
+      setUploadedImages((prev) => [...prev, publicUrl]);
+      
+      toast({
+        title: 'Image uploaded successfully',
+        description: 'Your image has been uploaded and compressed for better performance',
+      });
     } catch (error: any) {
+      console.error('Upload error:', error);
       setImageLoadError(error.message);
       toast({
         title: 'Upload failed',
@@ -254,6 +297,8 @@ export function ServiceForm({ serviceId, onSuccess }: ServiceFormProps) {
       });
     } finally {
       setUploading(false);
+      // Clear the input value so the same file can be uploaded again if needed
+      if (e.target.value) e.target.value = '';
     }
   };
 
@@ -349,6 +394,16 @@ export function ServiceForm({ serviceId, onSuccess }: ServiceFormProps) {
     }
   };
 
+  // Display loading state
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2">Processing...</span>
+      </div>
+    );
+  }
+  
   // Display error if there's an issue with the bucket
   if (imageLoadError && !bucketExists) {
     return (

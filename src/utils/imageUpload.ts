@@ -25,20 +25,21 @@ const compressImage = (file: File): Promise<File> => {
   });
 };
 
-// Function to check if bucket exists, create if it doesn't
-const ensureBucketExists = async (bucket: string): Promise<void> => {
-  // Check if bucket exists
-  const { data: buckets, error: listError } = await supabase.storage.listBuckets();
-  
-  if (listError) {
-    console.error('Error checking buckets:', listError);
-    throw new Error(`Error checking if bucket exists: ${listError.message}`);
-  }
-  
-  const bucketExists = buckets?.some(b => b.name === bucket);
-  
-  if (!bucketExists) {
-    throw new Error(`Bucket '${bucket}' does not exist. Please ensure the bucket is created in Supabase.`);
+// Function to check if bucket exists
+const ensureBucketExists = async (bucket: string): Promise<boolean> => {
+  try {
+    // Check if bucket exists
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+    
+    if (listError) {
+      console.error('Error checking buckets:', listError);
+      throw new Error(`Error checking if bucket exists: ${listError.message}`);
+    }
+    
+    return buckets?.some(b => b.name === bucket) || false;
+  } catch (error) {
+    console.error('Error checking if bucket exists:', error);
+    return false;
   }
 };
 
@@ -46,8 +47,12 @@ export const uploadImage = async (file: File, bucket: string, folderPath?: strin
   try {
     if (!file) return null;
     
-    // Ensure the bucket exists
-    await ensureBucketExists(bucket);
+    // Check if the bucket exists
+    const bucketExists = await ensureBucketExists(bucket);
+    
+    if (!bucketExists) {
+      throw new Error(`Bucket '${bucket}' does not exist. Please ensure the bucket is created in Supabase.`);
+    }
     
     // Compress the image before upload
     const compressedFile = await compressImage(file);
