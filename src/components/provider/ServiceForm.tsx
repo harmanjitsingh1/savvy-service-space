@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -6,8 +7,9 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
-import { Loader2, X, Plus, Image } from 'lucide-react';
+import { Loader2, X, Plus, Image, Upload } from 'lucide-react';
 import { uploadImage } from '@/utils/imageUpload';
+import Compressor from 'compressorjs';
 
 // UI Components
 import {
@@ -205,10 +207,11 @@ export function ServiceForm({ serviceId, onSuccess }: ServiceFormProps) {
       return;
     }
 
-    const file = e.target.files[0];
-
     // Check if maximum images reached
-    if (uploadedImages.length >= MAX_IMAGES) {
+    const remainingSlots = MAX_IMAGES - uploadedImages.length;
+    const filesToProcess = Array.from(e.target.files).slice(0, remainingSlots);
+    
+    if (filesToProcess.length === 0) {
       toast({
         title: 'Maximum images reached',
         description: `You can upload a maximum of ${MAX_IMAGES} images`,
@@ -217,87 +220,97 @@ export function ServiceForm({ serviceId, onSuccess }: ServiceFormProps) {
       return;
     }
 
-    // Validate file size
-    if (file.size > MAX_FILE_SIZE) {
-      toast({
-        title: 'File too large',
-        description: 'Image must be less than 5MB',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    // Validate file type
-    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-      toast({
-        title: 'Invalid file type',
-        description: 'Only JPEG, PNG and WebP images are allowed',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    try {
-      setUploading(true);
-      setImageLoadError(null);
-      
-      // Upload the image directly to the bucket
-      const fileExt = file.name.split('.').pop();
-      const fileName = `service_images/${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
-      
-      // First compress the image
-      const compressedFile = await new Promise<File>((resolve, reject) => {
-        new Compressor(file, {
-          quality: 0.8,
-          maxWidth: 1200,
-          maxHeight: 1200,
-          success(result) {
-            const compressedFile = new File([result], file.name, {
-              type: file.type,
-              lastModified: Date.now(),
-            });
-            resolve(compressedFile);
-          },
-          error(err) {
-            reject(err);
-          },
+    const uploadPromises = filesToProcess.map(async (file) => {
+      // Validate file size
+      if (file.size > MAX_FILE_SIZE) {
+        toast({
+          title: 'File too large',
+          description: `${file.name} is larger than 5MB`,
+          variant: 'destructive',
         });
-      });
-      
-      // Upload directly to Supabase storage
-      const { data, error } = await supabase.storage
-        .from('services')
-        .upload(fileName, compressedFile, {
-          cacheControl: '3600',
-          upsert: false
-        });
-      
-      if (error) {
-        throw error;
+        return null;
       }
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('services')
-        .getPublicUrl(data!.path);
+      // Validate file type
+      if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+        toast({
+          title: 'Invalid file type',
+          description: `${file.name} is not a valid image type`,
+          variant: 'destructive',
+        });
+        return null;
+      }
+
+      try {
+        setUploading(true);
+        
+        // First compress the image
+        const compressedFile = await new Promise<File>((resolve, reject) => {
+          new Compressor(file, {
+            quality: 0.8,
+            maxWidth: 1200,
+            maxHeight: 1200,
+            success(result) {
+              const compressedFile = new File([result], file.name, {
+                type: file.type,
+                lastModified: Date.now(),
+              });
+              resolve(compressedFile);
+            },
+            error(err) {
+              reject(err);
+            },
+          });
+        });
+        
+        // Upload directly to Supabase storage
+        const fileExt = file.name.split('.').pop();
+        const fileName = `service_images/${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+        
+        const { data, error } = await supabase.storage
+          .from('services')
+          .upload(fileName, compressedFile, {
+            cacheControl: '3600',
+            upsert: false
+          });
+        
+        if (error) {
+          throw error;
+        }
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('services')
+          .getPublicUrl(data!.path);
+        
+        return publicUrl;
+      } catch (error: any) {
+        console.error('Upload error:', error);
+        toast({
+          title: 'Upload failed',
+          description: `Failed to upload ${file.name}: ${error.message}`,
+          variant: 'destructive',
+        });
+        return null;
+      }
+    });
+    
+    try {
+      const results = await Promise.all(uploadPromises);
+      const validUrls = results.filter(url => url !== null) as string[];
       
-      setUploadedImages((prev) => [...prev, publicUrl]);
-      
-      toast({
-        title: 'Image uploaded successfully',
-        description: 'Your image has been uploaded and compressed for better performance',
-      });
-    } catch (error: any) {
-      console.error('Upload error:', error);
-      setImageLoadError(error.message);
-      toast({
-        title: 'Upload failed',
-        description: error.message || 'Failed to upload image',
-        variant: 'destructive',
-      });
+      if (validUrls.length > 0) {
+        setUploadedImages(prev => [...prev, ...validUrls]);
+        toast({
+          title: 'Images uploaded',
+          description: `${validUrls.length} image${validUrls.length > 1 ? 's' : ''} uploaded successfully`,
+        });
+      }
+    } catch (error) {
+      console.error('Upload batch error:', error);
     } finally {
       setUploading(false);
-      // Clear the input value so the same file can be uploaded again if needed
+      // Clear the input value so the same files can be uploaded again if needed
       if (e.target.value) e.target.value = '';
     }
   };
@@ -616,9 +629,9 @@ export function ServiceForm({ serviceId, onSuccess }: ServiceFormProps) {
                           <Loader2 className="h-6 w-6 animate-spin text-primary" />
                         ) : (
                           <>
-                            <Image className="mb-2 h-8 w-8 text-muted-foreground" />
+                            <Upload className="mb-2 h-8 w-8 text-muted-foreground" />
                             <span className="text-sm text-muted-foreground">
-                              Upload Image
+                              Upload Image{uploadedImages.length === 0 ? 's' : ''}
                             </span>
                           </>
                         )}
@@ -627,6 +640,7 @@ export function ServiceForm({ serviceId, onSuccess }: ServiceFormProps) {
                           type="file"
                           accept="image/*"
                           className="hidden"
+                          multiple={true}
                           onChange={handleImageUpload}
                           disabled={uploading || !bucketExists}
                         />
@@ -635,7 +649,7 @@ export function ServiceForm({ serviceId, onSuccess }: ServiceFormProps) {
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Add up to {MAX_IMAGES} images. Images help clients understand your service better.
+                  Add up to {MAX_IMAGES} images. {uploadedImages.length > 0 && `(${uploadedImages.length}/${MAX_IMAGES} used)`}
                 </p>
               </div>
 
