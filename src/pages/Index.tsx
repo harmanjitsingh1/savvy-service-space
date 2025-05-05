@@ -113,11 +113,7 @@ export default function Index() {
             </Button>
           </div>
           
-          <div className="grid md:grid-cols-3 gap-6">
-            {featuredServices.map((service) => (
-              <ServiceCard key={service.id} service={service} />
-            ))}
-          </div>
+          <ServicesGrid limit={3} showEmpty={false} />
         </div>
       </section>
 
@@ -189,11 +185,7 @@ export default function Index() {
             </Button>
           </div>
           
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {popularServices.map((service) => (
-              <ServiceCard key={service.id} service={service} />
-            ))}
-          </div>
+          <ServicesGrid limit={6} showEmpty={false} />
         </div>
       </section>
 

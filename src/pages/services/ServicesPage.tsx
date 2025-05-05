@@ -5,31 +5,42 @@ import { ServicesGrid } from "@/components/services/ServicesGrid";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search } from "lucide-react";
+import { Search, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export default function ServicesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
   
   // Fetch unique categories from actual services data
   useEffect(() => {
     const fetchCategories = async () => {
-      const { data, error } = await supabase
-        .from('provider_services')
-        .select('category')
-        .order('category');
-      
-      if (error) {
-        console.error('Error fetching categories:', error);
-        return;
-      }
-      
-      if (data) {
-        // Extract unique categories
-        const uniqueCategories = [...new Set(data.map(item => item.category))];
-        setCategories(uniqueCategories);
+      setIsLoadingCategories(true);
+      try {
+        const { data, error } = await supabase
+          .from('provider_services')
+          .select('category')
+          .order('category');
+        
+        if (error) {
+          console.error('Error fetching categories:', error);
+          toast.error('Failed to load categories');
+          return;
+        }
+        
+        if (data) {
+          // Extract unique categories
+          const uniqueCategories = [...new Set(data.map(item => item.category))].filter(Boolean);
+          console.log("Fetched categories:", uniqueCategories);
+          setCategories(uniqueCategories);
+        }
+      } catch (error) {
+        console.error('Error in category fetch operation:', error);
+      } finally {
+        setIsLoadingCategories(false);
       }
     };
     
@@ -38,8 +49,8 @@ export default function ServicesPage() {
   
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // The search will be applied through the searchTerm state
     console.log("Searching for:", searchTerm);
+    // The search will be applied through the searchTerm state
   };
   
   const handleCategorySelect = (category: string) => {
@@ -76,22 +87,28 @@ export default function ServicesPage() {
                 <CardTitle>Categories</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  {categories.length > 0 ? (
-                    categories.map((category) => (
-                      <Button
-                        key={category}
-                        variant={category === selectedCategory ? "secondary" : "ghost"}
-                        className="w-full justify-start"
-                        onClick={() => handleCategorySelect(category)}
-                      >
-                        {category}
-                      </Button>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No categories available</p>
-                  )}
-                </div>
+                {isLoadingCategories ? (
+                  <div className="flex justify-center py-4">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {categories.length > 0 ? (
+                      categories.map((category) => (
+                        <Button
+                          key={category}
+                          variant={category === selectedCategory ? "secondary" : "ghost"}
+                          className="w-full justify-start"
+                          onClick={() => handleCategorySelect(category)}
+                        >
+                          {category}
+                        </Button>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No categories available</p>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

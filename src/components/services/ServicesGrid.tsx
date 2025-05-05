@@ -18,6 +18,8 @@ export function ServicesGrid({ providerId, category, limit, showEmpty = true, se
   const { data: services, isLoading, error } = useQuery({
     queryKey: ['services', providerId, category, limit, searchTerm],
     queryFn: async () => {
+      console.log("Fetching services with params:", { providerId, category, searchTerm, limit });
+      
       let query = supabase
         .from('provider_services')
         .select(`
@@ -55,8 +57,10 @@ export function ServicesGrid({ providerId, category, limit, showEmpty = true, se
         console.error('Error fetching services:', error);
         throw error;
       }
+      
+      console.log("Services data from DB:", servicesData);
 
-      // Fetch provider profiles separately to avoid the relation issue
+      // Fetch provider profiles separately
       const providerIds = [...new Set(servicesData.map(service => service.provider_id))];
       
       let providerProfiles: Record<string, { name: string, image?: string }> = {};
@@ -101,8 +105,10 @@ export function ServicesGrid({ providerId, category, limit, showEmpty = true, se
         };
       });
 
+      console.log("Formatted services:", formattedServices);
       return formattedServices;
-    }
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
   if (isLoading) {
@@ -117,6 +123,7 @@ export function ServicesGrid({ providerId, category, limit, showEmpty = true, se
     return (
       <div className="text-center py-12">
         <p className="text-red-500">Error loading services. Please try again.</p>
+        <p className="text-sm text-muted-foreground mt-2">{(error as Error).message}</p>
       </div>
     );
   }
