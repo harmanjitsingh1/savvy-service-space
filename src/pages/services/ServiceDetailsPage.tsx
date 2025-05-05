@@ -9,20 +9,22 @@ import { Badge } from "@/components/ui/badge";
 import { BookingDialog } from "@/components/booking/BookingDialog";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { Calendar, Clock, MessageSquare, Star } from "lucide-react";
+import { Calendar, Clock, MessageSquare, Star, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Service } from "@/types";
+import { toast } from "sonner";
 
 export default function ServiceDetailsPage() {
   const { id } = useParams<{ id: string }>();
-  const [isBookingOpen, setIsBookingOpen] = useState(false);
   const navigate = useNavigate();
 
   const { data: service, isLoading, error } = useQuery({
     queryKey: ['service', id],
     queryFn: async () => {
       if (!id) throw new Error('Service ID is required');
+      
+      console.log("Fetching service with ID:", id);
       
       // First, fetch the service details
       const { data: serviceData, error: serviceError } = await supabase
@@ -33,8 +35,11 @@ export default function ServiceDetailsPage() {
       
       if (serviceError) {
         console.error('Error fetching service:', serviceError);
+        toast.error('Failed to load service details');
         throw serviceError;
       }
+
+      console.log("Fetched service data:", serviceData);
       
       // Fetch the provider profile separately
       const { data: profileData, error: profileError } = await supabase
@@ -45,6 +50,7 @@ export default function ServiceDetailsPage() {
       
       if (profileError) {
         console.error('Error fetching provider profile:', profileError);
+        toast.error('Failed to load provider details');
       }
       
       const providerName = profileData?.name || 'Provider';
@@ -69,6 +75,7 @@ export default function ServiceDetailsPage() {
         createdAt: serviceData.created_at
       };
       
+      console.log("Transformed service:", transformedService);
       return transformedService;
     },
     enabled: !!id,
@@ -78,7 +85,7 @@ export default function ServiceDetailsPage() {
     return (
       <MainLayout>
         <div className="container py-8 flex items-center justify-center min-h-[60vh]">
-          <p>Loading service details...</p>
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       </MainLayout>
     );

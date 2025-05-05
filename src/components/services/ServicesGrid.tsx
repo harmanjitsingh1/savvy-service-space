@@ -59,6 +59,12 @@ export function ServicesGrid({ providerId, category, limit, showEmpty = true, se
       }
       
       console.log("Services data from DB:", servicesData);
+      
+      // If no services found, return empty array
+      if (!servicesData || servicesData.length === 0) {
+        console.log("No services found");
+        return [];
+      }
 
       // Fetch provider profiles separately
       const providerIds = [...new Set(servicesData.map(service => service.provider_id))];
@@ -120,6 +126,7 @@ export function ServicesGrid({ providerId, category, limit, showEmpty = true, se
   }
 
   if (error) {
+    console.error("Error loading services:", error);
     return (
       <div className="text-center py-12">
         <p className="text-red-500">Error loading services. Please try again.</p>
