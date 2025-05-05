@@ -16,15 +16,13 @@ import { Calendar } from "lucide-react";
 interface BookingDialogProps {
   service: Service;
   trigger?: React.ReactNode;
-  open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
 
-export function BookingDialog({ service, trigger, open: externalOpen, onOpenChange: externalOnOpenChange }: BookingDialogProps) {
+export function BookingDialog({ service, trigger, onOpenChange: externalOnOpenChange }: BookingDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   
   // Use either external or internal state
-  const isOpen = externalOpen !== undefined ? externalOpen : internalOpen;
   const setOpen = externalOnOpenChange || setInternalOpen;
 
   const handleBookingSuccess = () => {
@@ -32,7 +30,7 @@ export function BookingDialog({ service, trigger, open: externalOpen, onOpenChan
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setOpen}>
+    <Dialog open={internalOpen} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || (
           <Button className="w-full">

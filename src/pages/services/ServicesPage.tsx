@@ -1,32 +1,44 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { ServicesGrid } from "@/components/services/ServicesGrid";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function ServicesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [categories, setCategories] = useState<string[]>([]);
   
-  const categories = [
-    "Cleaning",
-    "Plumbing",
-    "Electrical",
-    "Carpentry",
-    "Education",
-    "Technology",
-    "Health",
-    "Beauty",
-    "Entertainment",
-    "Other"
-  ];
+  // Fetch unique categories from actual services data
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const { data, error } = await supabase
+        .from('provider_services')
+        .select('category')
+        .order('category');
+      
+      if (error) {
+        console.error('Error fetching categories:', error);
+        return;
+      }
+      
+      if (data) {
+        // Extract unique categories
+        const uniqueCategories = [...new Set(data.map(item => item.category))];
+        setCategories(uniqueCategories);
+      }
+    };
+    
+    fetchCategories();
+  }, []);
   
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, this would filter based on the search term
+    // The search will be applied through the searchTerm state
     console.log("Searching for:", searchTerm);
   };
   
@@ -65,23 +77,30 @@ export default function ServicesPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {categories.map((category) => (
-                    <Button
-                      key={category}
-                      variant={category === selectedCategory ? "secondary" : "ghost"}
-                      className="w-full justify-start"
-                      onClick={() => handleCategorySelect(category)}
-                    >
-                      {category}
-                    </Button>
-                  ))}
+                  {categories.length > 0 ? (
+                    categories.map((category) => (
+                      <Button
+                        key={category}
+                        variant={category === selectedCategory ? "secondary" : "ghost"}
+                        className="w-full justify-start"
+                        onClick={() => handleCategorySelect(category)}
+                      >
+                        {category}
+                      </Button>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No categories available</p>
+                  )}
                 </div>
               </CardContent>
             </Card>
           </div>
           
           <div className="md:col-span-3">
-            <ServicesGrid category={selectedCategory || undefined} />
+            <ServicesGrid 
+              category={selectedCategory || undefined} 
+              searchTerm={searchTerm}
+            />
           </div>
         </div>
       </div>

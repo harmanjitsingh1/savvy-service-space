@@ -11,11 +11,12 @@ interface ServicesGridProps {
   category?: string;
   limit?: number;
   showEmpty?: boolean;
+  searchTerm?: string;
 }
 
-export function ServicesGrid({ providerId, category, limit, showEmpty = true }: ServicesGridProps) {
+export function ServicesGrid({ providerId, category, limit, showEmpty = true, searchTerm }: ServicesGridProps) {
   const { data: services, isLoading, error } = useQuery({
-    queryKey: ['services', providerId, category, limit],
+    queryKey: ['services', providerId, category, limit, searchTerm],
     queryFn: async () => {
       let query = supabase
         .from('provider_services')
@@ -38,6 +39,10 @@ export function ServicesGrid({ providerId, category, limit, showEmpty = true }: 
 
       if (category) {
         query = query.eq('category', category);
+      }
+
+      if (searchTerm) {
+        query = query.ilike('title', `%${searchTerm}%`);
       }
 
       if (limit) {
@@ -123,7 +128,14 @@ export function ServicesGrid({ providerId, category, limit, showEmpty = true }: 
       <div className="text-center py-12">
         <h3 className="text-lg font-medium">No services found</h3>
         <p className="text-muted-foreground mt-2">
-          {providerId ? "This provider hasn't listed any services yet." : "No services match your criteria."}
+          {providerId 
+            ? "This provider hasn't listed any services yet." 
+            : searchTerm 
+              ? "No services match your search criteria." 
+              : category 
+                ? `No services found in the ${category} category.`
+                : "No services available at the moment."
+          }
         </p>
       </div>
     );

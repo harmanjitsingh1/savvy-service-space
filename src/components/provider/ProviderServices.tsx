@@ -118,6 +118,7 @@ export function ProviderServices() {
 
   const handleEditService = (serviceId: string) => {
     navigate(`/provider/edit-service/${serviceId}`);
+    console.log(`Navigating to edit service: ${serviceId}`);
   };
 
   if (isLoading) {

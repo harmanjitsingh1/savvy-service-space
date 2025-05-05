@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,7 @@ import { Service } from "@/types";
 export default function ServiceDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const [isBookingOpen, setIsBookingOpen] = useState(false);
+  const navigate = useNavigate();
 
   const { data: service, isLoading, error } = useQuery({
     queryKey: ['service', id],
@@ -95,7 +96,7 @@ export default function ServiceDetailsPage() {
               </CardDescription>
             </CardHeader>
             <CardFooter>
-              <Button variant="outline" onClick={() => window.history.back()}>Go Back</Button>
+              <Button variant="outline" onClick={() => navigate(-1)}>Go Back</Button>
             </CardFooter>
           </Card>
         </div>
@@ -218,20 +219,16 @@ export default function ServiceDetailsPage() {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button className="w-full" onClick={() => setIsBookingOpen(true)}>
-                  Book Now
-                </Button>
+                <BookingDialog 
+                  service={service} 
+                  trigger={
+                    <Button className="w-full">Book Now</Button>
+                  }
+                />
               </CardFooter>
             </Card>
           </div>
         </div>
-
-        {service && (
-          <BookingDialog
-            service={service}
-            trigger={null}
-          />
-        )}
       </div>
     </MainLayout>
   );
