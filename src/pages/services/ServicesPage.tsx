@@ -5,7 +5,7 @@ import { ServicesGrid } from "@/components/services/ServicesGrid";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Loader2, Filter, X } from "lucide-react";
+import { Search, Loader2, Filter, X, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Slider } from "@/components/ui/slider";
@@ -17,17 +17,54 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { Form, FormField, FormItem, FormControl, FormLabel } from "@/components/ui/form";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function ServicesPage() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
+  
+  const initialSearchTerm = searchParams.get("search") || "";
+  const initialCategory = searchParams.get("category") || null;
+  const initialMinPrice = searchParams.get("minPrice") ? Number(searchParams.get("minPrice")) : undefined;
+  const initialMaxPrice = searchParams.get("maxPrice") ? Number(searchParams.get("maxPrice")) : undefined;
+  
+  const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(initialCategory);
   const [categories, setCategories] = useState<string[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(false);
-  const [minPrice, setMinPrice] = useState<number | undefined>(undefined);
-  const [maxPrice, setMaxPrice] = useState<number | undefined>(undefined);
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]);
+  const [minPrice, setMinPrice] = useState<number | undefined>(initialMinPrice);
+  const [maxPrice, setMaxPrice] = useState<number | undefined>(initialMaxPrice);
+  const [priceRange, setPriceRange] = useState<[number, number]>([initialMinPrice || 0, initialMaxPrice || 5000]);
   const [showFilters, setShowFilters] = useState(false);
+  const [isDataLoading, setIsDataLoading] = useState(true);
+  const [hasAnyServices, setHasAnyServices] = useState(false);
+  
+  // Check if there are any services at all in the database
+  useEffect(() => {
+    async function checkForServices() {
+      try {
+        const { count, error } = await supabase
+          .from('provider_services')
+          .select('*', { count: 'exact', head: true });
+        
+        if (error) {
+          console.error('Error checking for services:', error);
+          return;
+        }
+        
+        console.log(`Total services in database: ${count}`);
+        setHasAnyServices(count > 0);
+        setIsDataLoading(false);
+      } catch (err) {
+        console.error('Error in service check:', err);
+        setIsDataLoading(false);
+      }
+    }
+    
+    checkForServices();
+  }, []);
   
   // Fetch unique categories from actual services data
   useEffect(() => {
@@ -61,6 +98,21 @@ export default function ServicesPage() {
     fetchCategories();
   }, []);
   
+  // Update search params when filters change
+  useEffect(() => {
+    const params = new URLSearchParams();
+    
+    if (searchTerm) params.set("search", searchTerm);
+    if (selectedCategory) params.set("category", selectedCategory);
+    if (minPrice !== undefined) params.set("minPrice", minPrice.toString());
+    if (maxPrice !== undefined) params.set("maxPrice", maxPrice.toString());
+    
+    // Only update if params have changed to avoid unnecessary history entries
+    if (params.toString() !== searchParams.toString()) {
+      setSearchParams(params);
+    }
+  }, [searchTerm, selectedCategory, minPrice, maxPrice]);
+  
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Searching for:", searchTerm);
@@ -83,12 +135,25 @@ export default function ServicesPage() {
     setMinPrice(undefined);
     setMaxPrice(undefined);
     setPriceRange([0, 5000]);
+    setSearchParams(new URLSearchParams());
   };
 
   return (
     <MainLayout>
       <div className="container py-8">
-        <h1 className="text-3xl font-bold tracking-tight mb-6">Available Services</h1>
+        <div className="flex flex-col md:flex-row justify-between items-start mb-6">
+          <h1 className="text-3xl font-bold tracking-tight mb-4 md:mb-0">Available Services</h1>
+          
+          {isAuthenticated && (
+            <Button 
+              onClick={() => navigate("/provider/add-service")}
+              className="flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Service
+            </Button>
+          )}
+        </div>
         
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="md:col-span-3">
@@ -118,91 +183,108 @@ export default function ServicesPage() {
           </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <CardTitle>Categories</CardTitle>
-                  {selectedCategory && (
-                    <Button variant="ghost" size="sm" onClick={() => setSelectedCategory(null)}>
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent>
-                {isLoadingCategories ? (
-                  <div className="flex justify-center py-4">
-                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {categories.length > 0 ? (
-                      categories.map((category) => (
-                        <Button
-                          key={category}
-                          variant={category === selectedCategory ? "secondary" : "ghost"}
-                          className="w-full justify-start"
-                          onClick={() => handleCategorySelect(category)}
-                        >
-                          {category}
-                        </Button>
-                      ))
-                    ) : (
-                      <p className="text-sm text-muted-foreground">No categories available</p>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-            
-            {showFilters && (
+        {isDataLoading ? (
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="ml-2">Loading...</span>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Price Range</CardTitle>
+                  <div className="flex justify-between items-center">
+                    <CardTitle>Categories</CardTitle>
+                    {selectedCategory && (
+                      <Button variant="ghost" size="sm" onClick={() => setSelectedCategory(null)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-6">
-                    <Slider 
-                      defaultValue={[0, 5000]} 
-                      min={0} 
-                      max={5000} 
-                      step={100}
-                      value={priceRange}
-                      onValueChange={handlePriceChange}
-                    />
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>Min: ₹{priceRange[0]}</Label>
-                      </div>
-                      <div>
-                        <Label>Max: ₹{priceRange[1]}</Label>
-                      </div>
+                  {isLoadingCategories ? (
+                    <div className="flex justify-center py-4">
+                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                     </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="w-full" 
-                      onClick={clearFilters}
-                    >
-                      Clear All Filters
-                    </Button>
-                  </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {categories.length > 0 ? (
+                        categories.map((category) => (
+                          <Button
+                            key={category}
+                            variant={category === selectedCategory ? "secondary" : "ghost"}
+                            className="w-full justify-start"
+                            onClick={() => handleCategorySelect(category)}
+                          >
+                            {category}
+                          </Button>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No categories available</p>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
-            )}
+              
+              {showFilters && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Price Range</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-6">
+                      <Slider 
+                        defaultValue={[0, 5000]} 
+                        min={0} 
+                        max={5000} 
+                        step={100}
+                        value={priceRange}
+                        onValueChange={handlePriceChange}
+                      />
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label>Min: ₹{priceRange[0]}</Label>
+                        </div>
+                        <div>
+                          <Label>Max: ₹{priceRange[1]}</Label>
+                        </div>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full" 
+                        onClick={clearFilters}
+                      >
+                        Clear All Filters
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {!hasAnyServices && (
+                <Card className="bg-amber-50 border-amber-200">
+                  <CardContent className="p-4 text-sm">
+                    <p className="text-amber-800">
+                      <strong>No services found in the database.</strong> If you're a developer, you may need to add some sample data to the provider_services table.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+            
+            <div className="md:col-span-3">
+              <ServicesGrid 
+                category={selectedCategory || undefined} 
+                searchTerm={searchTerm}
+                minPrice={minPrice}
+                maxPrice={maxPrice}
+              />
+            </div>
           </div>
-          
-          <div className="md:col-span-3">
-            <ServicesGrid 
-              category={selectedCategory || undefined} 
-              searchTerm={searchTerm}
-              minPrice={minPrice}
-              maxPrice={maxPrice}
-            />
-          </div>
-        </div>
+        )}
       </div>
     </MainLayout>
   );

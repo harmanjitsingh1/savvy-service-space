@@ -1,10 +1,11 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ServiceCard } from "@/components/ui/service-card";
 import { Service } from "@/types";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface ServicesGridProps {
   providerId?: string;
@@ -25,120 +26,174 @@ export function ServicesGrid({
   minPrice,
   maxPrice 
 }: ServicesGridProps) {
+  const [hasDataChecked, setHasDataChecked] = useState(false);
+
+  // First, let's manually check if there's any data in the provider_services table
+  useEffect(() => {
+    async function checkForData() {
+      try {
+        const { count, error } = await supabase
+          .from('provider_services')
+          .select('*', { count: 'exact', head: true });
+        
+        console.log("Database check - Total records in provider_services:", count);
+        
+        if (error) {
+          console.error("Error checking provider_services table:", error);
+        }
+
+        // If there's no data at all, we might need to create some sample data
+        if (count === 0) {
+          console.warn("No records found in provider_services table. You may need to add some test data.");
+        }
+        
+        setHasDataChecked(true);
+      } catch (err) {
+        console.error("Error in data check:", err);
+        setHasDataChecked(true);
+      }
+    }
+    
+    checkForData();
+  }, []);
+
   const { data: services, isLoading, error } = useQuery({
-    queryKey: ['services', providerId, category, limit, searchTerm, minPrice, maxPrice],
+    queryKey: ['services', providerId, category, limit, searchTerm, minPrice, maxPrice, hasDataChecked],
     queryFn: async () => {
       console.log("Fetching services with params:", { providerId, category, searchTerm, minPrice, maxPrice, limit });
       
-      let query = supabase
-        .from('provider_services')
-        .select(`
-          id,
-          title,
-          description,
-          price,
-          category,
-          duration,
-          images,
-          provider_id,
-          created_at
-        `)
-        .order('created_at', { ascending: false });
+      // Add more detailed logging for debugging
+      console.log("Supabase client status:", supabase ? "initialized" : "not initialized");
+      
+      try {
+        let query = supabase
+          .from('provider_services')
+          .select(`
+            id,
+            title,
+            description,
+            price,
+            category,
+            duration,
+            images,
+            provider_id,
+            created_at
+          `);
 
-      if (providerId) {
-        query = query.eq('provider_id', providerId);
-      }
-
-      if (category) {
-        query = query.eq('category', category);
-      }
-
-      if (searchTerm) {
-        query = query.ilike('title', `%${searchTerm}%`);
-      }
-      
-      if (minPrice !== undefined) {
-        query = query.gte('price', minPrice);
-      }
-      
-      if (maxPrice !== undefined) {
-        query = query.lte('price', maxPrice);
-      }
-
-      if (limit) {
-        query = query.limit(limit);
-      }
-
-      const { data: servicesData, error } = await query;
-      
-      if (error) {
-        console.error('Error fetching services:', error);
-        throw error;
-      }
-      
-      console.log("Services data from DB:", servicesData);
-      
-      // If no services found, return empty array
-      if (!servicesData || servicesData.length === 0) {
-        console.log("No services found");
-        return [];
-      }
-
-      // Fetch provider profiles separately
-      const providerIds = [...new Set(servicesData.map(service => service.provider_id))];
-      
-      let providerProfiles: Record<string, { name: string, image?: string }> = {};
-      
-      if (providerIds.length > 0) {
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, name, image')
-          .in('id', providerIds);
-          
-        if (profilesError) {
-          console.error('Error fetching provider profiles:', profilesError);
-        } else if (profiles) {
-          // Create a map of provider_id to provider profile
-          providerProfiles = profiles.reduce((acc, profile) => {
-            acc[profile.id] = { name: profile.name || 'Provider', image: profile.image };
-            return acc;
-          }, {} as Record<string, { name: string, image?: string }>);
+        // Apply filters if provided
+        if (providerId) {
+          query = query.eq('provider_id', providerId);
         }
-      }
 
-      // Transform the data to match the Service type
-      const formattedServices: Service[] = servicesData.map(service => {
-        const providerProfile = providerProfiles[service.provider_id] || { name: 'Provider', image: undefined };
+        if (category) {
+          query = query.eq('category', category);
+        }
+
+        if (searchTerm) {
+          query = query.ilike('title', `%${searchTerm}%`);
+        }
         
-        return {
-          id: service.id,
-          title: service.title,
-          description: service.description || '',
-          price: Number(service.price),
-          category: service.category,
-          providerId: service.provider_id,
-          providerName: providerProfile.name,
-          providerImage: providerProfile.image,
-          images: service.images || [],
-          rating: 0, // Default rating since we don't have reviews yet
-          reviewCount: 0, // Default review count
-          location: 'Local Area', // Default location
-          duration: service.duration,
-          available: true,
-          createdAt: service.created_at
-        };
-      });
+        if (minPrice !== undefined) {
+          query = query.gte('price', minPrice);
+        }
+        
+        if (maxPrice !== undefined) {
+          query = query.lte('price', maxPrice);
+        }
 
-      console.log("Formatted services:", formattedServices);
-      return formattedServices;
+        // Order by latest first
+        query = query.order('created_at', { ascending: false });
+
+        if (limit) {
+          query = query.limit(limit);
+        }
+
+        console.log("Executing Supabase query...");
+        const { data: servicesData, error } = await query;
+        
+        // Log the raw response for debugging
+        console.log("Raw Supabase response:", { servicesData, error });
+        
+        if (error) {
+          console.error('Error fetching services:', error);
+          toast.error("Failed to load services");
+          throw error;
+        }
+        
+        console.log("Services data from DB:", servicesData);
+        
+        // If no services found, return empty array
+        if (!servicesData || servicesData.length === 0) {
+          console.log("No services found");
+          return [];
+        }
+
+        // Fetch provider profiles separately
+        const providerIds = [...new Set(servicesData.map(service => service.provider_id))];
+        
+        let providerProfiles: Record<string, { name: string, image?: string }> = {};
+        
+        if (providerIds.length > 0) {
+          console.log("Fetching provider profiles for IDs:", providerIds);
+          const { data: profiles, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, name, image')
+            .in('id', providerIds);
+            
+          if (profilesError) {
+            console.error('Error fetching provider profiles:', profilesError);
+            toast.error("Could not load provider details");
+          } else if (profiles) {
+            console.log("Provider profiles fetched:", profiles);
+            // Create a map of provider_id to provider profile
+            providerProfiles = profiles.reduce((acc, profile) => {
+              acc[profile.id] = { name: profile.name || 'Provider', image: profile.image };
+              return acc;
+            }, {} as Record<string, { name: string, image?: string }>);
+          }
+        }
+
+        // Transform the data to match the Service type
+        const formattedServices: Service[] = servicesData.map(service => {
+          const providerProfile = providerProfiles[service.provider_id] || { name: 'Provider', image: undefined };
+          
+          return {
+            id: service.id,
+            title: service.title,
+            description: service.description || '',
+            price: Number(service.price),
+            category: service.category,
+            providerId: service.provider_id,
+            providerName: providerProfile.name,
+            providerImage: providerProfile.image,
+            images: service.images || [],
+            rating: 0, // Default rating since we don't have reviews yet
+            reviewCount: 0, // Default review count
+            location: 'Local Area', // Default location
+            duration: service.duration,
+            available: true,
+            createdAt: service.created_at
+          };
+        });
+
+        console.log("Formatted services:", formattedServices);
+        return formattedServices;
+      } catch (err) {
+        console.error("Unexpected error in service fetch:", err);
+        toast.error("Failed to load services data");
+        throw err;
+      }
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: hasDataChecked, // Only run query after we've checked the database
+    retry: 2, // Retry failed requests 2 times
   });
 
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2">Loading services...</span>
       </div>
     );
   }
@@ -157,7 +212,7 @@ export function ServicesGrid({
     if (!showEmpty) return null;
     
     return (
-      <div className="text-center py-12">
+      <div className="text-center py-12 border border-dashed border-gray-300 rounded-lg">
         <h3 className="text-lg font-medium">No services found</h3>
         <p className="text-muted-foreground mt-2">
           {providerId 
@@ -166,7 +221,7 @@ export function ServicesGrid({
               ? "No services match your search criteria." 
               : category 
                 ? `No services found in the ${category} category.`
-                : "No services available at the moment."
+                : "No services available at the moment. Please check back later."
           }
         </p>
       </div>
