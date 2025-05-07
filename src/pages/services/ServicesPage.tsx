@@ -5,15 +5,29 @@ import { ServicesGrid } from "@/components/services/ServicesGrid";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Loader2 } from "lucide-react";
+import { Search, Loader2, Filter, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Slider } from "@/components/ui/slider";
+import { Label } from "@/components/ui/label";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { Form, FormField, FormItem, FormControl, FormLabel } from "@/components/ui/form";
 
 export default function ServicesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(false);
+  const [minPrice, setMinPrice] = useState<number | undefined>(undefined);
+  const [maxPrice, setMaxPrice] = useState<number | undefined>(undefined);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]);
+  const [showFilters, setShowFilters] = useState(false);
   
   // Fetch unique categories from actual services data
   useEffect(() => {
@@ -57,6 +71,20 @@ export default function ServicesPage() {
     setSelectedCategory(category === selectedCategory ? null : category);
   };
 
+  const handlePriceChange = (values: number[]) => {
+    setPriceRange([values[0], values[1]]);
+    setMinPrice(values[0]);
+    setMaxPrice(values[1]);
+  };
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setSelectedCategory(null);
+    setMinPrice(undefined);
+    setMaxPrice(undefined);
+    setPriceRange([0, 5000]);
+  };
+
   return (
     <MainLayout>
       <div className="container py-8">
@@ -78,13 +106,30 @@ export default function ServicesPage() {
               </Button>
             </form>
           </div>
+          <div className="flex justify-end">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center gap-2"
+            >
+              <Filter className="h-4 w-4" />
+              {showFilters ? "Hide Filters" : "Show Filters"}
+            </Button>
+          </div>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Categories</CardTitle>
+                <div className="flex justify-between items-center">
+                  <CardTitle>Categories</CardTitle>
+                  {selectedCategory && (
+                    <Button variant="ghost" size="sm" onClick={() => setSelectedCategory(null)}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 {isLoadingCategories ? (
@@ -111,12 +156,50 @@ export default function ServicesPage() {
                 )}
               </CardContent>
             </Card>
+            
+            {showFilters && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Price Range</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    <Slider 
+                      defaultValue={[0, 5000]} 
+                      min={0} 
+                      max={5000} 
+                      step={100}
+                      value={priceRange}
+                      onValueChange={handlePriceChange}
+                    />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>Min: ₹{priceRange[0]}</Label>
+                      </div>
+                      <div>
+                        <Label>Max: ₹{priceRange[1]}</Label>
+                      </div>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full" 
+                      onClick={clearFilters}
+                    >
+                      Clear All Filters
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
           
           <div className="md:col-span-3">
             <ServicesGrid 
               category={selectedCategory || undefined} 
               searchTerm={searchTerm}
+              minPrice={minPrice}
+              maxPrice={maxPrice}
             />
           </div>
         </div>

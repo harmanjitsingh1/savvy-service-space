@@ -12,13 +12,23 @@ interface ServicesGridProps {
   limit?: number;
   showEmpty?: boolean;
   searchTerm?: string;
+  minPrice?: number;
+  maxPrice?: number;
 }
 
-export function ServicesGrid({ providerId, category, limit, showEmpty = true, searchTerm }: ServicesGridProps) {
+export function ServicesGrid({ 
+  providerId, 
+  category, 
+  limit, 
+  showEmpty = true, 
+  searchTerm,
+  minPrice,
+  maxPrice 
+}: ServicesGridProps) {
   const { data: services, isLoading, error } = useQuery({
-    queryKey: ['services', providerId, category, limit, searchTerm],
+    queryKey: ['services', providerId, category, limit, searchTerm, minPrice, maxPrice],
     queryFn: async () => {
-      console.log("Fetching services with params:", { providerId, category, searchTerm, limit });
+      console.log("Fetching services with params:", { providerId, category, searchTerm, minPrice, maxPrice, limit });
       
       let query = supabase
         .from('provider_services')
@@ -45,6 +55,14 @@ export function ServicesGrid({ providerId, category, limit, showEmpty = true, se
 
       if (searchTerm) {
         query = query.ilike('title', `%${searchTerm}%`);
+      }
+      
+      if (minPrice !== undefined) {
+        query = query.gte('price', minPrice);
+      }
+      
+      if (maxPrice !== undefined) {
+        query = query.lte('price', maxPrice);
       }
 
       if (limit) {
