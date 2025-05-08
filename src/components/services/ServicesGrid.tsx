@@ -100,7 +100,7 @@ export function ServicesGrid({
           mockServices = mockServices.filter(service => service.price <= maxPrice);
         }
         
-        if (minRating !== undefined) {
+        if (minRating !== undefined && minRating > 0) {
           mockServices = mockServices.filter(service => service.rating >= minRating);
         }
         
@@ -246,7 +246,7 @@ export function ServicesGrid({
         // (since we don't have these in database yet)
         let filteredServices = formattedServices;
         
-        if (minRating !== undefined) {
+        if (minRating !== undefined && minRating > 0) {
           filteredServices = filteredServices.filter(service => service.rating >= minRating);
         }
         
@@ -301,7 +301,7 @@ export function ServicesGrid({
       filteredServices = filteredServices.filter(s => s.price <= maxPrice);
     }
     
-    if (minRating !== undefined) {
+    if (minRating !== undefined && minRating > 0) {
       filteredServices = filteredServices.filter(s => s.rating >= minRating);
     }
     

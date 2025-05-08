@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { ServicesGrid } from "@/components/services/ServicesGrid";
@@ -289,14 +288,14 @@ export default function ServicesPage() {
                     </CardHeader>
                     <CardContent>
                       <Select 
-                        value={minRating?.toString() || ""} 
+                        value={minRating?.toString() || "any"} 
                         onValueChange={handleRatingChange}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Any rating" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Any rating</SelectItem>
+                          <SelectItem value="any">Any rating</SelectItem>
                           <SelectItem value="5">5 stars <Star className="inline h-4 w-4 ml-1 text-yellow-400" /></SelectItem>
                           <SelectItem value="4">4+ stars <Star className="inline h-4 w-4 ml-1 text-yellow-400" /></SelectItem>
                           <SelectItem value="3">3+ stars <Star className="inline h-4 w-4 ml-1 text-yellow-400" /></SelectItem>
