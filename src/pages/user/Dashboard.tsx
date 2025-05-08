@@ -52,7 +52,12 @@ export default function DashboardPage() {
       try {
         const { data, error } = await supabase
           .from("bookings")
-          .select("*")
+          .select(`
+            *,
+            service:service_id (
+              title
+            )
+          `)
           .eq("user_id", user.id)
           .order("booking_date", { ascending: false });
 
@@ -477,7 +482,7 @@ export default function DashboardPage() {
                             <div className="flex-1 space-y-2">
                               <div className="flex items-center justify-between">
                                 <h3 className="font-medium">
-                                  {booking.service_id.substring(0, 8)}
+                                  {booking.service?.title || "Unknown Service"}
                                 </h3>
                                 <Badge
                                   variant={
