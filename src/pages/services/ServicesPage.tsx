@@ -5,7 +5,7 @@ import { ServicesGrid } from "@/components/services/ServicesGrid";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Loader2, Filter, X, Plus } from "lucide-react";
+import { Search, Loader2, Filter, X, Plus, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Slider } from "@/components/ui/slider";
@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { CATEGORIES } from "@/services/mockData";
 
 export default function ServicesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -40,6 +41,7 @@ export default function ServicesPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [hasAnyServices, setHasAnyServices] = useState(false);
+  const [usingMockData, setUsingMockData] = useState(false);
   
   // Check if there are any services at all in the database
   useEffect(() => {
@@ -51,14 +53,19 @@ export default function ServicesPage() {
         
         if (error) {
           console.error('Error checking for services:', error);
+          setUsingMockData(true);
           return;
         }
         
         console.log(`Total services in database: ${count}`);
+        if (count === 0) {
+          setUsingMockData(true);
+        }
         setHasAnyServices(count > 0);
         setIsDataLoading(false);
       } catch (err) {
         console.error('Error in service check:', err);
+        setUsingMockData(true);
         setIsDataLoading(false);
       }
     }
@@ -66,7 +73,7 @@ export default function ServicesPage() {
     checkForServices();
   }, []);
   
-  // Fetch unique categories from actual services data
+  // Use categories from mock data if none found in database
   useEffect(() => {
     const fetchCategories = async () => {
       setIsLoadingCategories(true);
@@ -78,18 +85,27 @@ export default function ServicesPage() {
         
         if (error) {
           console.error('Error fetching categories:', error);
-          toast.error('Failed to load categories');
+          // Use mock categories instead
+          const mockCategories = CATEGORIES.map(cat => cat.name);
+          setCategories(mockCategories);
           return;
         }
         
-        if (data) {
+        if (data && data.length > 0) {
           // Extract unique categories
           const uniqueCategories = [...new Set(data.map(item => item.category))].filter(Boolean);
           console.log("Fetched categories:", uniqueCategories);
           setCategories(uniqueCategories);
+        } else {
+          // Use mock categories if none found in database
+          const mockCategories = CATEGORIES.map(cat => cat.name);
+          setCategories(mockCategories);
         }
       } catch (error) {
         console.error('Error in category fetch operation:', error);
+        // Use mock categories on error
+        const mockCategories = CATEGORIES.map(cat => cat.name);
+        setCategories(mockCategories);
       } finally {
         setIsLoadingCategories(false);
       }
@@ -154,6 +170,15 @@ export default function ServicesPage() {
             </Button>
           )}
         </div>
+        
+        {usingMockData && (
+          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md flex items-center">
+            <Info className="h-5 w-5 text-amber-500 mr-2" />
+            <p className="text-sm text-amber-800">
+              Using demo data since no services were found in the database.
+            </p>
+          </div>
+        )}
         
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="md:col-span-3">
@@ -260,16 +285,6 @@ export default function ServicesPage() {
                         Clear All Filters
                       </Button>
                     </div>
-                  </CardContent>
-                </Card>
-              )}
-              
-              {!hasAnyServices && (
-                <Card className="bg-amber-50 border-amber-200">
-                  <CardContent className="p-4 text-sm">
-                    <p className="text-amber-800">
-                      <strong>No services found in the database.</strong> If you're a developer, you may need to add some sample data to the provider_services table.
-                    </p>
                   </CardContent>
                 </Card>
               )}
