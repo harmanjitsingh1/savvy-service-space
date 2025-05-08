@@ -1,12 +1,12 @@
+
 import React, { useState, useEffect } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { ServicesGrid } from "@/components/services/ServicesGrid";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Filter, X, Plus, Star } from "lucide-react";
+import { Search, Filter, X, Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { 
@@ -17,14 +17,12 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
 import { CATEGORIES } from "@/services/mockData";
 import { Checkbox } from "@/components/ui/checkbox";
 
 export default function ServicesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuth();
   
   const initialSearchTerm = searchParams.get("search") || "";
   const initialCategory = searchParams.get("category") || null;
@@ -146,7 +144,7 @@ export default function ServicesPage() {
   };
 
   const handleRatingChange = (rating: string) => {
-    setMinRating(rating ? Number(rating) : undefined);
+    setMinRating(rating === "any" ? undefined : Number(rating));
   };
 
   const toggleAvailabilityFilter = (checked: boolean) => {
@@ -169,16 +167,6 @@ export default function ServicesPage() {
       <div className="container py-8">
         <div className="flex flex-col md:flex-row justify-between items-start mb-6">
           <h1 className="text-3xl font-bold tracking-tight mb-4 md:mb-0">Available Services</h1>
-          
-          {isAuthenticated && (
-            <Button 
-              onClick={() => navigate("/provider/add-service")}
-              className="flex items-center gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Add Service
-            </Button>
-          )}
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">

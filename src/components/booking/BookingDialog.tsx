@@ -8,7 +8,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Service } from "@/types";
 import { BookingForm } from "./BookingForm";
 import { Calendar } from "lucide-react";
@@ -33,9 +32,9 @@ export function BookingDialog({ service, trigger, onOpenChange: externalOnOpenCh
     <Dialog open={internalOpen} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button className="w-full">
+          <button className="w-full bg-primary text-primary-foreground rounded-md px-4 py-2 flex items-center justify-center">
             <Calendar className="h-4 w-4 mr-2" /> Book Now
-          </Button>
+          </button>
         )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
