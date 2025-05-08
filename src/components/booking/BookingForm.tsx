@@ -15,6 +15,7 @@ import { format } from "date-fns";
 import { Calendar as CalendarIcon, IndianRupee } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 interface BookingFormProps {
   service: Service;
@@ -34,7 +35,7 @@ const timeSlots = [
 
 export function BookingForm({ service, onSuccess }: BookingFormProps) {
   const { user } = useAuth();
-  const { toast } = useToast();
+  const { toast: legacyToast } = useToast();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -46,11 +47,7 @@ export function BookingForm({ service, onSuccess }: BookingFormProps) {
 
   const onSubmit = async (data: FormData) => {
     if (!user) {
-      toast({
-        title: "Authentication required",
-        description: "Please log in to book this service",
-        variant: "destructive",
-      });
+      toast.error("Please log in to book this service");
       navigate("/login", { state: { from: `/services/${service.id}` } });
       return;
     }
@@ -87,10 +84,7 @@ export function BookingForm({ service, onSuccess }: BookingFormProps) {
       
       console.log("Booking created successfully:", insertedBooking);
       
-      toast({
-        title: "Booking confirmed!",
-        description: "Your service has been booked successfully.",
-      });
+      toast.success("Your service has been booked successfully.");
 
       if (onSuccess) {
         onSuccess();
@@ -98,11 +92,7 @@ export function BookingForm({ service, onSuccess }: BookingFormProps) {
       navigate("/dashboard");
     } catch (error) {
       console.error("Error during booking:", error);
-      toast({
-        title: "Error",
-        description: "Failed to book the service. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Failed to book the service. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

@@ -30,7 +30,7 @@ export function BookingDialog({ service, trigger, onOpenChange: externalOnOpenCh
   };
 
   return (
-    <Dialog open={internalOpen} onOpenChange={setOpen}>
+    <Dialog open={externalOnOpenChange ? undefined : internalOpen} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || (
           <Button className="w-full">

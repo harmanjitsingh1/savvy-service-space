@@ -228,9 +228,6 @@ export default function ServiceDetailsPage() {
               <CardFooter>
                 <BookingDialog 
                   service={service} 
-                  trigger={
-                    <Button className="w-full">Book Now</Button>
-                  }
                 />
               </CardFooter>
             </Card>
