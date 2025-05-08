@@ -16,6 +16,8 @@ interface ServicesGridProps {
   searchTerm?: string;
   minPrice?: number;
   maxPrice?: number;
+  minRating?: number;
+  availableOnly?: boolean;
 }
 
 export function ServicesGrid({ 
@@ -25,7 +27,9 @@ export function ServicesGrid({
   showEmpty = true, 
   searchTerm,
   minPrice,
-  maxPrice 
+  maxPrice,
+  minRating,
+  availableOnly
 }: ServicesGridProps) {
   const [hasDataChecked, setHasDataChecked] = useState(false);
   const [useMockData, setUseMockData] = useState(false);
@@ -63,7 +67,7 @@ export function ServicesGrid({
   }, []);
 
   const { data: services, isLoading, error } = useQuery({
-    queryKey: ['services', providerId, category, limit, searchTerm, minPrice, maxPrice, hasDataChecked, useMockData],
+    queryKey: ['services', providerId, category, limit, searchTerm, minPrice, maxPrice, minRating, availableOnly, hasDataChecked, useMockData],
     queryFn: async () => {
       // If using mock data, filter the mock services
       if (useMockData) {
@@ -96,6 +100,14 @@ export function ServicesGrid({
           mockServices = mockServices.filter(service => service.price <= maxPrice);
         }
         
+        if (minRating !== undefined) {
+          mockServices = mockServices.filter(service => service.rating >= minRating);
+        }
+        
+        if (availableOnly) {
+          mockServices = mockServices.filter(service => service.available);
+        }
+        
         // Apply limit if provided
         if (limit) {
           mockServices = mockServices.slice(0, limit);
@@ -105,7 +117,16 @@ export function ServicesGrid({
         return mockServices;
       }
       
-      console.log("Fetching services with params:", { providerId, category, searchTerm, minPrice, maxPrice, limit });
+      console.log("Fetching services with params:", { 
+        providerId, 
+        category, 
+        searchTerm, 
+        minPrice, 
+        maxPrice, 
+        minRating,
+        availableOnly,
+        limit 
+      });
       
       // Add more detailed logging for debugging
       console.log("Supabase client status:", supabase ? "initialized" : "not initialized");
@@ -221,8 +242,20 @@ export function ServicesGrid({
           };
         });
 
-        console.log("Formatted services:", formattedServices);
-        return formattedServices;
+        // Apply rating and availability filters on the client side 
+        // (since we don't have these in database yet)
+        let filteredServices = formattedServices;
+        
+        if (minRating !== undefined) {
+          filteredServices = filteredServices.filter(service => service.rating >= minRating);
+        }
+        
+        if (availableOnly) {
+          filteredServices = filteredServices.filter(service => service.available);
+        }
+
+        console.log("Formatted and filtered services:", filteredServices);
+        return filteredServices;
       } catch (err) {
         console.error("Unexpected error in service fetch:", err);
         toast.error("Failed to load services data");
@@ -266,6 +299,14 @@ export function ServicesGrid({
     
     if (maxPrice !== undefined) {
       filteredServices = filteredServices.filter(s => s.price <= maxPrice);
+    }
+    
+    if (minRating !== undefined) {
+      filteredServices = filteredServices.filter(s => s.rating >= minRating);
+    }
+    
+    if (availableOnly) {
+      filteredServices = filteredServices.filter(s => s.available);
     }
     
     if (limit) {

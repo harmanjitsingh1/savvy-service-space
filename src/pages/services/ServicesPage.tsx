@@ -5,7 +5,7 @@ import { ServicesGrid } from "@/components/services/ServicesGrid";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Loader2, Filter, X, Plus, Info } from "lucide-react";
+import { Search, Filter, X, Plus, Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Slider } from "@/components/ui/slider";
@@ -20,6 +20,7 @@ import {
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { CATEGORIES } from "@/services/mockData";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function ServicesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -30,6 +31,8 @@ export default function ServicesPage() {
   const initialCategory = searchParams.get("category") || null;
   const initialMinPrice = searchParams.get("minPrice") ? Number(searchParams.get("minPrice")) : undefined;
   const initialMaxPrice = searchParams.get("maxPrice") ? Number(searchParams.get("maxPrice")) : undefined;
+  const initialMinRating = searchParams.get("minRating") ? Number(searchParams.get("minRating")) : undefined;
+  const initialAvailableOnly = searchParams.get("availableOnly") === "true";
   
   const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(initialCategory);
@@ -38,10 +41,11 @@ export default function ServicesPage() {
   const [minPrice, setMinPrice] = useState<number | undefined>(initialMinPrice);
   const [maxPrice, setMaxPrice] = useState<number | undefined>(initialMaxPrice);
   const [priceRange, setPriceRange] = useState<[number, number]>([initialMinPrice || 0, initialMaxPrice || 5000]);
+  const [minRating, setMinRating] = useState<number | undefined>(initialMinRating);
+  const [availableOnly, setAvailableOnly] = useState<boolean>(initialAvailableOnly);
   const [showFilters, setShowFilters] = useState(false);
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [hasAnyServices, setHasAnyServices] = useState(false);
-  const [usingMockData, setUsingMockData] = useState(false);
   
   // Check if there are any services at all in the database
   useEffect(() => {
@@ -53,19 +57,14 @@ export default function ServicesPage() {
         
         if (error) {
           console.error('Error checking for services:', error);
-          setUsingMockData(true);
           return;
         }
         
         console.log(`Total services in database: ${count}`);
-        if (count === 0) {
-          setUsingMockData(true);
-        }
         setHasAnyServices(count > 0);
         setIsDataLoading(false);
       } catch (err) {
         console.error('Error in service check:', err);
-        setUsingMockData(true);
         setIsDataLoading(false);
       }
     }
@@ -73,7 +72,7 @@ export default function ServicesPage() {
     checkForServices();
   }, []);
   
-  // Use categories from mock data if none found in database
+  // Fetch categories
   useEffect(() => {
     const fetchCategories = async () => {
       setIsLoadingCategories(true);
@@ -122,12 +121,14 @@ export default function ServicesPage() {
     if (selectedCategory) params.set("category", selectedCategory);
     if (minPrice !== undefined) params.set("minPrice", minPrice.toString());
     if (maxPrice !== undefined) params.set("maxPrice", maxPrice.toString());
+    if (minRating !== undefined) params.set("minRating", minRating.toString());
+    if (availableOnly) params.set("availableOnly", "true");
     
     // Only update if params have changed to avoid unnecessary history entries
     if (params.toString() !== searchParams.toString()) {
       setSearchParams(params);
     }
-  }, [searchTerm, selectedCategory, minPrice, maxPrice]);
+  }, [searchTerm, selectedCategory, minPrice, maxPrice, minRating, availableOnly]);
   
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -145,12 +146,22 @@ export default function ServicesPage() {
     setMaxPrice(values[1]);
   };
 
+  const handleRatingChange = (rating: string) => {
+    setMinRating(rating ? Number(rating) : undefined);
+  };
+
+  const toggleAvailabilityFilter = (checked: boolean) => {
+    setAvailableOnly(checked);
+  };
+
   const clearFilters = () => {
     setSearchTerm("");
     setSelectedCategory(null);
     setMinPrice(undefined);
     setMaxPrice(undefined);
     setPriceRange([0, 5000]);
+    setMinRating(undefined);
+    setAvailableOnly(false);
     setSearchParams(new URLSearchParams());
   };
 
@@ -170,15 +181,6 @@ export default function ServicesPage() {
             </Button>
           )}
         </div>
-        
-        {usingMockData && (
-          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md flex items-center">
-            <Info className="h-5 w-5 text-amber-500 mr-2" />
-            <p className="text-sm text-amber-800">
-              Using demo data since no services were found in the database.
-            </p>
-          </div>
-        )}
         
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="md:col-span-3">
@@ -210,7 +212,7 @@ export default function ServicesPage() {
         
         {isDataLoading ? (
           <div className="flex justify-center items-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="h-8 w-8 animate-spin text-primary" />
             <span className="ml-2">Loading...</span>
           </div>
         ) : (
@@ -230,7 +232,7 @@ export default function ServicesPage() {
                 <CardContent>
                   {isLoadingCategories ? (
                     <div className="flex justify-center py-4">
-                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                      <div className="h-5 w-5 animate-spin text-muted-foreground" />
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -254,39 +256,81 @@ export default function ServicesPage() {
               </Card>
               
               {showFilters && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Price Range</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-6">
-                      <Slider 
-                        defaultValue={[0, 5000]} 
-                        min={0} 
-                        max={5000} 
-                        step={100}
-                        value={priceRange}
-                        onValueChange={handlePriceChange}
-                      />
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <Label>Min: ₹{priceRange[0]}</Label>
-                        </div>
-                        <div>
-                          <Label>Max: ₹{priceRange[1]}</Label>
+                <>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Price Range</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-6">
+                        <Slider 
+                          defaultValue={[0, 5000]} 
+                          min={0} 
+                          max={5000} 
+                          step={100}
+                          value={priceRange}
+                          onValueChange={handlePriceChange}
+                        />
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <Label>Min: ₹{priceRange[0]}</Label>
+                          </div>
+                          <div>
+                            <Label>Max: ₹{priceRange[1]}</Label>
+                          </div>
                         </div>
                       </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="w-full" 
-                        onClick={clearFilters}
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Rating</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Select 
+                        value={minRating?.toString() || ""} 
+                        onValueChange={handleRatingChange}
                       >
-                        Clear All Filters
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Any rating" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Any rating</SelectItem>
+                          <SelectItem value="5">5 stars <Star className="inline h-4 w-4 ml-1 text-yellow-400" /></SelectItem>
+                          <SelectItem value="4">4+ stars <Star className="inline h-4 w-4 ml-1 text-yellow-400" /></SelectItem>
+                          <SelectItem value="3">3+ stars <Star className="inline h-4 w-4 ml-1 text-yellow-400" /></SelectItem>
+                          <SelectItem value="2">2+ stars <Star className="inline h-4 w-4 ml-1 text-yellow-400" /></SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Availability</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="availableOnly" 
+                          checked={availableOnly}
+                          onCheckedChange={toggleAvailabilityFilter}
+                        />
+                        <Label htmlFor="availableOnly">Show only available services</Label>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full" 
+                    onClick={clearFilters}
+                  >
+                    Clear All Filters
+                  </Button>
+                </>
               )}
             </div>
             
@@ -296,6 +340,8 @@ export default function ServicesPage() {
                 searchTerm={searchTerm}
                 minPrice={minPrice}
                 maxPrice={maxPrice}
+                minRating={minRating}
+                availableOnly={availableOnly}
               />
             </div>
           </div>
