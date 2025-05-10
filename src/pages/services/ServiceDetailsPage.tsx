@@ -79,6 +79,8 @@ export default function ServiceDetailsPage() {
       return transformedService;
     },
     enabled: !!id,
+    retry: 1,
+    refetchOnWindowFocus: false,
   });
 
   if (isLoading) {
@@ -86,6 +88,7 @@ export default function ServiceDetailsPage() {
       <MainLayout>
         <div className="container py-8 flex items-center justify-center min-h-[60vh]">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-2">Loading service details...</span>
         </div>
       </MainLayout>
     );
@@ -177,9 +180,9 @@ export default function ServiceDetailsPage() {
               <CardContent>
                 <div className="flex items-center space-x-4">
                   <Avatar className="h-12 w-12">
-                    <AvatarImage src={service.providerImage || "/placeholder.svg"} />
+                    <AvatarImage src={service.providerImage || ""} />
                     <AvatarFallback>
-                      {service.providerName ? service.providerName.substring(0, 2) : "SP"}
+                      {service.providerName ? service.providerName.substring(0, 2).toUpperCase() : "SP"}
                     </AvatarFallback>
                   </Avatar>
                   <div>
@@ -216,7 +219,7 @@ export default function ServiceDetailsPage() {
                   <div className="space-y-2">
                     <div className="flex items-center text-sm">
                       <Clock className="h-4 w-4 mr-2" />
-                      <span>{service.duration} hour(s)</span>
+                      <span>{service.duration} hour{service.duration !== 1 ? 's' : ''}</span>
                     </div>
                     <div className="flex items-center text-sm">
                       <Calendar className="h-4 w-4 mr-2" />
@@ -226,9 +229,7 @@ export default function ServiceDetailsPage() {
                 </div>
               </CardContent>
               <CardFooter>
-                <BookingDialog 
-                  service={service} 
-                />
+                <BookingDialog service={service} />
               </CardFooter>
             </Card>
           </div>

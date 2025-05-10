@@ -38,6 +38,8 @@ export function ServicesGrid({
   useEffect(() => {
     async function checkForData() {
       try {
+        console.log("Checking for data in provider_services table...");
+        
         const { count, error } = await supabase
           .from('provider_services')
           .select('*', { count: 'exact', head: true });
@@ -127,9 +129,6 @@ export function ServicesGrid({
         availableOnly,
         limit 
       });
-      
-      // Add more detailed logging for debugging
-      console.log("Supabase client status:", supabase ? "initialized" : "not initialized");
       
       try {
         let query = supabase
