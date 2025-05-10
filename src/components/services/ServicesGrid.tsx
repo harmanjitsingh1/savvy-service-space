@@ -1,12 +1,11 @@
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ServiceCard } from "@/components/ui/service-card";
 import { Service } from "@/types";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { SERVICES } from "@/services/mockData";
 
 interface ServicesGridProps {
   providerId?: string;
@@ -31,103 +30,15 @@ export function ServicesGrid({
   minRating,
   availableOnly
 }: ServicesGridProps) {
-  const [hasDataChecked, setHasDataChecked] = useState(false);
-  const [useMockData, setUseMockData] = useState(false);
-
-  // First, let's manually check if there's any data in the provider_services table
-  useEffect(() => {
-    async function checkForData() {
-      try {
-        console.log("Checking for data in provider_services table...");
-        
-        const { count, error } = await supabase
-          .from('provider_services')
-          .select('*', { count: 'exact', head: true });
-        
-        console.log("Database check - Total records in provider_services:", count);
-        
-        if (error) {
-          console.error("Error checking provider_services table:", error);
-          setUseMockData(true);
-        }
-
-        // If there's no data at all, use mock data instead
-        if (count === 0) {
-          console.log("No records found in provider_services table. Using mock data instead.");
-          setUseMockData(true);
-        }
-        
-        setHasDataChecked(true);
-      } catch (err) {
-        console.error("Error in data check:", err);
-        setUseMockData(true);
-        setHasDataChecked(true);
-      }
-    }
-    
-    checkForData();
-  }, []);
+  console.log("ServicesGrid rendering with filters:", { 
+    providerId, category, searchTerm, minPrice, maxPrice, minRating, availableOnly 
+  });
 
   const { data: services, isLoading, error } = useQuery({
-    queryKey: ['services', providerId, category, limit, searchTerm, minPrice, maxPrice, minRating, availableOnly, hasDataChecked, useMockData],
+    queryKey: ['services', providerId, category, limit, searchTerm, minPrice, maxPrice, minRating, availableOnly],
     queryFn: async () => {
-      // If using mock data, filter the mock services
-      if (useMockData) {
-        console.log("Using mock data for services");
-        
-        let mockServices = [...SERVICES];
-        
-        // Apply filters to mock data
-        if (providerId) {
-          mockServices = mockServices.filter(service => service.providerId === providerId);
-        }
-        
-        if (category) {
-          mockServices = mockServices.filter(service => service.category === category);
-        }
-        
-        if (searchTerm) {
-          const searchLower = searchTerm.toLowerCase();
-          mockServices = mockServices.filter(service => 
-            service.title.toLowerCase().includes(searchLower) || 
-            service.description.toLowerCase().includes(searchLower)
-          );
-        }
-        
-        if (minPrice !== undefined) {
-          mockServices = mockServices.filter(service => service.price >= minPrice);
-        }
-        
-        if (maxPrice !== undefined) {
-          mockServices = mockServices.filter(service => service.price <= maxPrice);
-        }
-        
-        if (minRating !== undefined && minRating > 0) {
-          mockServices = mockServices.filter(service => service.rating >= minRating);
-        }
-        
-        if (availableOnly) {
-          mockServices = mockServices.filter(service => service.available);
-        }
-        
-        // Apply limit if provided
-        if (limit) {
-          mockServices = mockServices.slice(0, limit);
-        }
-        
-        console.log("Filtered mock services:", mockServices);
-        return mockServices;
-      }
-      
       console.log("Fetching services with params:", { 
-        providerId, 
-        category, 
-        searchTerm, 
-        minPrice, 
-        maxPrice, 
-        minRating,
-        availableOnly,
-        limit 
+        providerId, category, searchTerm, minPrice, maxPrice, minRating, availableOnly, limit 
       });
       
       try {
@@ -189,8 +100,8 @@ export function ServicesGrid({
         
         // If no services found, return empty array
         if (!servicesData || servicesData.length === 0) {
-          console.log("No services found in database, falling back to mock data");
-          return useMockData ? filterMockServices() : [];
+          console.log("No services found in database");
+          return [];
         }
 
         // Fetch provider profiles separately
@@ -258,62 +169,12 @@ export function ServicesGrid({
       } catch (err) {
         console.error("Unexpected error in service fetch:", err);
         toast.error("Failed to load services data");
-        
-        if (useMockData) {
-          console.log("Falling back to mock data due to error");
-          return filterMockServices();
-        }
-        
         throw err;
       }
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
-    enabled: hasDataChecked, // Only run query after we've checked the database
     retry: 2, // Retry failed requests 2 times
   });
-  
-  // Helper function to filter mock services based on current filters
-  const filterMockServices = () => {
-    let filteredServices = [...SERVICES];
-    
-    if (providerId) {
-      filteredServices = filteredServices.filter(s => s.providerId === providerId);
-    }
-    
-    if (category) {
-      filteredServices = filteredServices.filter(s => s.category === category);
-    }
-    
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filteredServices = filteredServices.filter(s => 
-        s.title.toLowerCase().includes(term) || 
-        s.description.toLowerCase().includes(term)
-      );
-    }
-    
-    if (minPrice !== undefined) {
-      filteredServices = filteredServices.filter(s => s.price >= minPrice);
-    }
-    
-    if (maxPrice !== undefined) {
-      filteredServices = filteredServices.filter(s => s.price <= maxPrice);
-    }
-    
-    if (minRating !== undefined && minRating > 0) {
-      filteredServices = filteredServices.filter(s => s.rating >= minRating);
-    }
-    
-    if (availableOnly) {
-      filteredServices = filteredServices.filter(s => s.available);
-    }
-    
-    if (limit) {
-      filteredServices = filteredServices.slice(0, limit);
-    }
-    
-    return filteredServices;
-  };
 
   if (isLoading) {
     return (
@@ -324,7 +185,7 @@ export function ServicesGrid({
     );
   }
 
-  if (error && !useMockData) {
+  if (error) {
     console.error("Error loading services:", error);
     return (
       <div className="text-center py-12">
