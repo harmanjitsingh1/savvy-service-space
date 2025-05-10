@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ServiceCard } from "@/components/ui/service-card";
@@ -42,6 +42,20 @@ export function ServicesGrid({
       });
       
       try {
+        // Check if the provider_services table exists and has data
+        const { count, error: checkError } = await supabase
+          .from('provider_services')
+          .select('*', { count: 'exact', head: true });
+        
+        if (checkError) {
+          console.error('Error checking provider_services table:', checkError);
+          toast.error("Error checking services table");
+          throw checkError;
+        }
+        
+        console.log(`Total services in database: ${count}`);
+        
+        // Query the provider_services table
         let query = supabase
           .from('provider_services')
           .select(`
