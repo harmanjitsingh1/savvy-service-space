@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,13 @@ import { Menu, Search, Bell, MessageSquare, User, LogOut, ChevronDown, UserRound
 import { IconButton } from "@/components/ui/icon-button";
 import { SERVICES } from "@/services/mockData";
 import { useOnClickOutside } from "@/hooks/use-click-outside";
+import { 
+  Sheet, 
+  SheetContent, 
+  SheetHeader, 
+  SheetTitle, 
+  SheetTrigger 
+} from "@/components/ui/sheet";
 
 export function Navbar() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -55,7 +63,6 @@ export function Navbar() {
     }
   };
 
-  // Add the missing handleKeyPress function
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleSearch(e);
@@ -74,40 +81,57 @@ export function Navbar() {
     }, 200);
   };
 
+  const navLinks = [
+    { title: "Home", path: "/" },
+    { title: "Services", path: "/services" },
+    { title: "About", path: "/about" },
+    { title: "Contact", path: "/contact" },
+  ];
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center">
-          <Button variant="ghost" size="icon" className="md:hidden mr-2">
-            <Menu className="h-5 w-5" />
-          </Button>
+          {/* Mobile menu trigger using Sheet component */}
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="md:hidden mr-2">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left">
+              <SheetHeader className="mb-4">
+                <SheetTitle>Menu</SheetTitle>
+              </SheetHeader>
+              <div className="flex flex-col space-y-3">
+                {navLinks.map((link) => (
+                  <Link
+                    key={link.path}
+                    to={link.path}
+                    className="text-sm font-medium transition-colors hover:text-primary py-2"
+                  >
+                    {link.title}
+                  </Link>
+                ))}
+              </div>
+            </SheetContent>
+          </Sheet>
+          
           <Link to="/" className="flex items-center space-x-2">
             <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-brand-400 to-brand-700">
               ServeBay
             </span>
           </Link>
           <nav className="hidden md:flex items-center space-x-4 ml-6">
-            <Link to="/" className="text-sm font-medium transition-colors hover:text-primary">
-              Home
-            </Link>
-            <Link
-              to="/services"
-              className="text-sm font-medium transition-colors hover:text-primary"
-            >
-              Services
-            </Link>
-            <Link
-              to="/about"
-              className="text-sm font-medium transition-colors hover:text-primary"
-            >
-              About
-            </Link>
-            <Link
-              to="/contact"
-              className="text-sm font-medium transition-colors hover:text-primary"
-            >
-              Contact
-            </Link>
+            {navLinks.map((link) => (
+              <Link
+                key={link.path}
+                to={link.path}
+                className="text-sm font-medium transition-colors hover:text-primary"
+              >
+                {link.title}
+              </Link>
+            ))}
           </nav>
         </div>
 

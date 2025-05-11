@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
@@ -9,15 +9,18 @@ import { Badge } from "@/components/ui/badge";
 import { BookingDialog } from "@/components/booking/BookingDialog";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { Calendar, Clock, MessageSquare, Star, Loader2 } from "lucide-react";
+import { Calendar, Clock, MessageSquare, Star, Loader2, Heart, HeartOff } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Service } from "@/types";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function ServiceDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuth();
+  const [isSaved, setIsSaved] = useState(false);
 
   const { data: service, isLoading, error } = useQuery({
     queryKey: ['service', id],
@@ -83,6 +86,20 @@ export default function ServiceDetailsPage() {
     refetchOnWindowFocus: false,
   });
 
+  const handleSaveToWishlist = () => {
+    if (!isAuthenticated) {
+      toast.error("Please login to save services to your wishlist");
+      return;
+    }
+
+    setIsSaved(!isSaved);
+    if (!isSaved) {
+      toast.success("Service added to your wishlist");
+    } else {
+      toast.info("Service removed from your wishlist");
+    }
+  };
+
   if (isLoading) {
     return (
       <MainLayout>
@@ -116,11 +133,25 @@ export default function ServiceDetailsPage() {
 
   return (
     <MainLayout>
-      <div className="container py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="container py-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-2 space-y-6">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">{service.title}</h1>
+              <div className="flex justify-between items-start">
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{service.title}</h1>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={handleSaveToWishlist}
+                  className="text-muted-foreground hover:text-primary"
+                  title={isSaved ? "Remove from wishlist" : "Add to wishlist"}
+                >
+                  {isSaved ? 
+                    <Heart className="h-5 w-5 fill-red-500 text-red-500" /> : 
+                    <Heart className="h-5 w-5" />
+                  }
+                </Button>
+              </div>
               <div className="flex items-center mt-2 space-x-2">
                 <Badge variant="outline" className="bg-secondary text-secondary-foreground">
                   {service.category}
@@ -167,15 +198,15 @@ export default function ServiceDetailsPage() {
             )}
 
             <div className="space-y-4">
-              <h2 className="text-xl font-semibold">About this service</h2>
+              <h2 className="text-lg font-semibold">About this service</h2>
               <p className="text-muted-foreground whitespace-pre-line">
                 {service.description || "No description provided."}
               </p>
             </div>
 
             <Card>
-              <CardHeader>
-                <CardTitle>Service Provider</CardTitle>
+              <CardHeader className="py-4">
+                <CardTitle className="text-lg">Service Provider</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center space-x-4">
@@ -191,21 +222,37 @@ export default function ServiceDetailsPage() {
                   </div>
                 </div>
               </CardContent>
-              <CardFooter>
+              <CardFooter className="py-4">
                 <Button variant="outline" className="w-full">
                   <MessageSquare className="h-4 w-4 mr-2" />
                   Contact Provider
                 </Button>
               </CardFooter>
             </Card>
+            
+            <Card>
+              <CardHeader className="py-4">
+                <CardTitle className="text-lg">Customer Reviews</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {service.reviewCount > 0 ? (
+                  <div className="space-y-4">
+                    {/* Reviews would be displayed here */}
+                    <p className="text-muted-foreground">This service has {service.reviewCount} reviews.</p>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">No reviews yet. Be the first to review this service.</p>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           <div>
-            <Card className="sticky top-8">
+            <Card className="sticky top-20">
               <CardHeader>
                 <CardTitle>Book this service</CardTitle>
                 <CardDescription>
-                  Book now and get your service scheduled
+                  Get your service scheduled today
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -229,7 +276,11 @@ export default function ServiceDetailsPage() {
                 </div>
               </CardContent>
               <CardFooter>
-                <BookingDialog service={service} />
+                <Button asChild className="w-full">
+                  <Link to={`/services/${service.id}/booking`}>
+                    Book Now
+                  </Link>
+                </Button>
               </CardFooter>
             </Card>
           </div>
