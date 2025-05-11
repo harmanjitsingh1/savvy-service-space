@@ -14,6 +14,7 @@ import Register from "./pages/auth/Register";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ServicesPage from "./pages/services/ServicesPage";
 import ServiceDetailsPage from "./pages/services/ServiceDetailsPage";
+import ServiceBookingPage from "./pages/services/ServiceBookingPage";
 import ProfilePage from "./pages/user/Profile";
 import DashboardPage from "./pages/user/Dashboard";
 import ProviderDashboardPage from "./pages/provider/ProviderDashboard";
@@ -42,7 +43,8 @@ const App = () => (
             
             {/* Service browsing routes - accessible to everyone but with redirects for providers */}
             <Route path="/services" element={<ServicesPage />} />
-            <Route path="/services/:serviceId" element={<ServiceDetailsPage />} />
+            <Route path="/services/:id" element={<ServiceDetailsPage />} />
+            <Route path="/services/:id/booking" element={<ServiceBookingPage />} />
             
             {/* Auth routes - only accessible when NOT logged in */}
             <Route element={<PublicRoute redirectPath="/" />}>

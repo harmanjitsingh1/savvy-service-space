@@ -24,7 +24,7 @@ export function ServiceCard({ service, className, showProvider = true, hideBooki
     : "/placeholder.svg";
     
   return (
-    <Card className={cn("overflow-hidden transition-all hover:shadow-md", className)}>
+    <Card className={cn("overflow-hidden h-full flex flex-col", className)}>
       <Link to={`/services/${service.id}`} className="block">
         <AspectRatio ratio={16 / 9}>
           <img 
@@ -38,22 +38,22 @@ export function ServiceCard({ service, className, showProvider = true, hideBooki
         </AspectRatio>
       </Link>
       
-      <CardHeader>
-        <div className="flex justify-between items-start">
-          <CardTitle className="line-clamp-2">
+      <CardHeader className="px-4 py-3">
+        <div className="flex justify-between items-start gap-2">
+          <CardTitle className="line-clamp-2 text-base sm:text-lg">
             <Link to={`/services/${service.id}`} className="hover:underline">
               {service.title}
             </Link>
           </CardTitle>
-          <Badge variant="outline" className="bg-secondary/50">
+          <Badge variant="outline" className="bg-secondary/50 whitespace-nowrap text-xs">
             {service.category}
           </Badge>
         </div>
         
         {service.rating > 0 && (
           <div className="flex items-center mt-1">
-            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-            <span className="text-sm">{service.rating}</span>
+            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 mr-1" />
+            <span className="text-xs">{service.rating}</span>
             <span className="text-xs text-muted-foreground ml-1">
               ({service.reviewCount} {service.reviewCount === 1 ? 'review' : 'reviews'})
             </span>
@@ -61,28 +61,28 @@ export function ServiceCard({ service, className, showProvider = true, hideBooki
         )}
       </CardHeader>
       
-      <CardContent>
-        <p className="text-muted-foreground line-clamp-2 mb-4">
+      <CardContent className="px-4 py-2 flex-grow">
+        <p className="text-muted-foreground text-sm line-clamp-2 mb-2">
           {service.description || 'No description provided.'}
         </p>
         
         <div className="flex justify-between items-center">
-          <p className="font-semibold text-lg">₹{service.price}</p>
-          <div className="flex items-center text-sm text-muted-foreground">
-            <Calendar className="h-4 w-4 mr-1" />
-            <span>{service.duration} hour{service.duration !== 1 ? 's' : ''}</span>
+          <p className="font-semibold text-base sm:text-lg">₹{service.price}</p>
+          <div className="flex items-center text-xs text-muted-foreground">
+            <Calendar className="h-3 w-3 mr-1" />
+            <span>{service.duration} hr</span>
           </div>
         </div>
         
         {showProvider && (
-          <div className="flex items-center mt-4">
-            <Avatar className="h-6 w-6 mr-2">
+          <div className="flex items-center mt-3">
+            <Avatar className="h-5 w-5 mr-2">
               <AvatarImage src={service.providerImage || ""} />
               <AvatarFallback>
                 {service.providerName ? service.providerName.substring(0, 2) : "P"}
               </AvatarFallback>
             </Avatar>
-            <span className="text-sm text-muted-foreground truncate">
+            <span className="text-xs text-muted-foreground truncate">
               {service.providerName}
             </span>
           </div>
@@ -90,10 +90,10 @@ export function ServiceCard({ service, className, showProvider = true, hideBooki
       </CardContent>
       
       {!hideBooking && (
-        <CardFooter>
-          <Button asChild className="w-full">
-            <Link to={`/services/${service.id}`}>
-              View Details
+        <CardFooter className="px-4 py-3 mt-auto">
+          <Button asChild className="w-full" size="sm">
+            <Link to={`/services/${service.id}/booking`}>
+              Book Service
             </Link>
           </Button>
         </CardFooter>

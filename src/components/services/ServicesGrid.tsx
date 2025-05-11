@@ -6,6 +6,7 @@ import { ServiceCard } from "@/components/ui/service-card";
 import { Service } from "@/types";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ServicesGridProps {
   providerId?: string;
@@ -30,6 +31,8 @@ export function ServicesGrid({
   minRating,
   availableOnly
 }: ServicesGridProps) {
+  const isMobile = useIsMobile();
+  
   console.log("ServicesGrid rendering with filters:", { 
     providerId, category, searchTerm, minPrice, maxPrice, minRating, availableOnly 
   });
@@ -192,9 +195,9 @@ export function ServicesGrid({
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">Loading services...</span>
+      <div className="flex justify-center items-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
+        <span>Loading services...</span>
       </div>
     );
   }
@@ -202,7 +205,7 @@ export function ServicesGrid({
   if (error) {
     console.error("Error loading services:", error);
     return (
-      <div className="text-center py-12">
+      <div className="text-center py-8">
         <p className="text-red-500">Error loading services. Please try again.</p>
         <p className="text-sm text-muted-foreground mt-2">{(error as Error).message}</p>
       </div>
@@ -213,7 +216,7 @@ export function ServicesGrid({
     if (!showEmpty) return null;
     
     return (
-      <div className="text-center py-12 border border-dashed border-gray-300 rounded-lg">
+      <div className="text-center py-8 border border-dashed border-gray-300 rounded-lg">
         <h3 className="text-lg font-medium">No services found</h3>
         <p className="text-muted-foreground mt-2">
           {providerId 
@@ -230,7 +233,7 @@ export function ServicesGrid({
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {services.map((service) => (
         <ServiceCard key={service.id} service={service} />
       ))}

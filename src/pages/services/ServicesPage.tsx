@@ -5,7 +5,7 @@ import { ServicesGrid } from "@/components/services/ServicesGrid";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Filter, X, Star } from "lucide-react";
+import { Search, Filter, X, Star, SlidersHorizontal } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
@@ -19,10 +19,13 @@ import {
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { CATEGORIES } from "@/services/mockData";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function ServicesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   
   const initialSearchTerm = searchParams.get("search") || "";
   const initialCategory = searchParams.get("category") || null;
@@ -40,7 +43,7 @@ export default function ServicesPage() {
   const [priceRange, setPriceRange] = useState<[number, number]>([initialMinPrice || 0, initialMaxPrice || 5000]);
   const [minRating, setMinRating] = useState<number | undefined>(initialMinRating);
   const [availableOnly, setAvailableOnly] = useState<boolean>(initialAvailableOnly);
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, setShowFilters] = useState(!isMobile);
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [hasAnyServices, setHasAnyServices] = useState(false);
   
@@ -162,39 +165,156 @@ export default function ServicesPage() {
     setSearchParams(new URLSearchParams());
   };
 
+  const renderFilters = () => (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="py-3">
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-base">Categories</CardTitle>
+            {selectedCategory && (
+              <Button variant="ghost" size="sm" onClick={() => setSelectedCategory(null)} className="h-7 w-7 p-0">
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="py-0">
+          {isLoadingCategories ? (
+            <div className="flex justify-center py-4">
+              <div className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="space-y-1 max-h-48 overflow-y-auto">
+              {categories.length > 0 ? (
+                categories.map((category) => (
+                  <Button
+                    key={category}
+                    variant={category === selectedCategory ? "secondary" : "ghost"}
+                    className="w-full justify-start h-8 text-sm px-3"
+                    onClick={() => handleCategorySelect(category)}
+                  >
+                    {category}
+                  </Button>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">No categories available</p>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader className="py-3">
+          <CardTitle className="text-base">Price Range</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <Slider 
+              defaultValue={[0, 5000]} 
+              min={0} 
+              max={5000} 
+              step={100}
+              value={priceRange}
+              onValueChange={handlePriceChange}
+            />
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-xs">Min: ₹{priceRange[0]}</Label>
+              </div>
+              <div>
+                <Label className="text-xs">Max: ₹{priceRange[1]}</Label>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="py-3">
+          <CardTitle className="text-base">Rating</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Select 
+            value={minRating?.toString() || "any"} 
+            onValueChange={handleRatingChange}
+          >
+            <SelectTrigger className="text-sm">
+              <SelectValue placeholder="Any rating" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="any">Any rating</SelectItem>
+              <SelectItem value="5">5 stars <Star className="inline h-3 w-3 ml-1 text-yellow-400" /></SelectItem>
+              <SelectItem value="4">4+ stars <Star className="inline h-3 w-3 ml-1 text-yellow-400" /></SelectItem>
+              <SelectItem value="3">3+ stars <Star className="inline h-3 w-3 ml-1 text-yellow-400" /></SelectItem>
+              <SelectItem value="2">2+ stars <Star className="inline h-3 w-3 ml-1 text-yellow-400" /></SelectItem>
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="py-3">
+          <CardTitle className="text-base">Availability</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center space-x-2">
+            <Checkbox 
+              id="availableOnly" 
+              checked={availableOnly}
+              onCheckedChange={toggleAvailabilityFilter}
+            />
+            <Label htmlFor="availableOnly" className="text-sm">Show only available services</Label>
+          </div>
+        </CardContent>
+      </Card>
+      
+      <Button 
+        variant="outline" 
+        size="sm" 
+        className="w-full" 
+        onClick={clearFilters}
+      >
+        Clear All Filters
+      </Button>
+    </div>
+  );
+
   return (
     <MainLayout>
-      <div className="container py-8">
-        <div className="flex flex-col md:flex-row justify-between items-start mb-6">
-          <h1 className="text-3xl font-bold tracking-tight mb-4 md:mb-0">Available Services</h1>
+      <div className="container py-4 md:py-6">
+        <div className="flex flex-col md:flex-row justify-between items-start mb-4">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-4 md:mb-0">Available Services</h1>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="md:col-span-3">
-            <form onSubmit={handleSearch} className="flex w-full max-w-lg items-center space-x-2">
-              <Input
-                type="text"
-                placeholder="Search services..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="flex-1"
-              />
-              <Button type="submit">
-                <Search className="h-4 w-4 mr-2" />
-                Search
-              </Button>
-            </form>
-          </div>
-          <div className="flex justify-end">
-            <Button 
-              variant="outline" 
-              onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center gap-2"
-            >
-              <Filter className="h-4 w-4" />
-              {showFilters ? "Hide Filters" : "Show Filters"}
+        <div className="mb-4">
+          <form onSubmit={handleSearch} className="flex w-full items-center gap-2">
+            <Input
+              type="text"
+              placeholder="Search services..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-1"
+            />
+            <Button type="submit" size={isMobile ? "sm" : "default"}>
+              <Search className="h-4 w-4" />
+              {!isMobile && <span className="ml-2">Search</span>}
             </Button>
-          </div>
+            
+            {isMobile && (
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="icon">
+                    <SlidersHorizontal className="h-4 w-4" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-[85%] sm:w-[350px] overflow-y-auto">
+                  <h2 className="text-lg font-semibold mb-4">Filters</h2>
+                  {renderFilters()}
+                </SheetContent>
+              </Sheet>
+            )}
+          </form>
         </div>
         
         {isDataLoading ? (
@@ -203,123 +323,12 @@ export default function ServicesPage() {
             <span className="ml-2">Loading...</span>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <div className="flex justify-between items-center">
-                    <CardTitle>Categories</CardTitle>
-                    {selectedCategory && (
-                      <Button variant="ghost" size="sm" onClick={() => setSelectedCategory(null)}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {isLoadingCategories ? (
-                    <div className="flex justify-center py-4">
-                      <div className="h-5 w-5 animate-spin text-muted-foreground" />
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {categories.length > 0 ? (
-                        categories.map((category) => (
-                          <Button
-                            key={category}
-                            variant={category === selectedCategory ? "secondary" : "ghost"}
-                            className="w-full justify-start"
-                            onClick={() => handleCategorySelect(category)}
-                          >
-                            {category}
-                          </Button>
-                        ))
-                      ) : (
-                        <p className="text-sm text-muted-foreground">No categories available</p>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-              
-              {showFilters && (
-                <>
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Price Range</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-6">
-                        <Slider 
-                          defaultValue={[0, 5000]} 
-                          min={0} 
-                          max={5000} 
-                          step={100}
-                          value={priceRange}
-                          onValueChange={handlePriceChange}
-                        />
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <Label>Min: ₹{priceRange[0]}</Label>
-                          </div>
-                          <div>
-                            <Label>Max: ₹{priceRange[1]}</Label>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Rating</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Select 
-                        value={minRating?.toString() || "any"} 
-                        onValueChange={handleRatingChange}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Any rating" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="any">Any rating</SelectItem>
-                          <SelectItem value="5">5 stars <Star className="inline h-4 w-4 ml-1 text-yellow-400" /></SelectItem>
-                          <SelectItem value="4">4+ stars <Star className="inline h-4 w-4 ml-1 text-yellow-400" /></SelectItem>
-                          <SelectItem value="3">3+ stars <Star className="inline h-4 w-4 ml-1 text-yellow-400" /></SelectItem>
-                          <SelectItem value="2">2+ stars <Star className="inline h-4 w-4 ml-1 text-yellow-400" /></SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Availability</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox 
-                          id="availableOnly" 
-                          checked={availableOnly}
-                          onCheckedChange={toggleAvailabilityFilter}
-                        />
-                        <Label htmlFor="availableOnly">Show only available services</Label>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="w-full" 
-                    onClick={clearFilters}
-                  >
-                    Clear All Filters
-                  </Button>
-                </>
-              )}
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {!isMobile && (
+              <div className="md:col-span-1 space-y-4">
+                {renderFilters()}
+              </div>
+            )}
             
             <div className="md:col-span-3">
               <ServicesGrid 
