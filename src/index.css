@@ -76,3 +76,31 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Fix carousel overflow issues */
+.embla__viewport {
+  overflow: hidden;
+  width: 100%;
+}
+
+.embla__container {
+  display: flex;
+}
+
+/* Reduce default container padding for mobile */
+@media (max-width: 640px) {
+  .container {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+}
+
+/* Fix for carousel buttons to ensure they're visible */
+.carousel-button {
+  @apply bg-background/80 hover:bg-background backdrop-blur-sm border shadow-sm z-10;
+}
+
+/* Ensuring service card grid is responsive */
+.service-card-grid {
+  @apply grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4;
+}

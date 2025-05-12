@@ -3,26 +3,25 @@ import React, { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { BookingDialog } from "@/components/booking/BookingDialog";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { Calendar, Clock, MessageSquare, Star, Loader2, Heart, HeartOff, Check, X, MapPin, Shield, Tag, HelpCircle, ExternalLink, Globe } from "lucide-react";
+import { Calendar, Clock, MessageSquare, Star, Loader2, Heart, MapPin, Shield, Tag, HelpCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Service } from "@/types";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { PageBreadcrumb } from "@/components/layout/PageBreadcrumb";
 
 export default function ServiceDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [isSaved, setIsSaved] = useState(false);
 
   const { data: service, isLoading, error } = useQuery({
@@ -147,45 +146,6 @@ export default function ServiceDetailsPage() {
       reviewCount: 45,
       duration: 1,
       providerName: "Hygiene Experts"
-    },
-    {
-      id: "3",
-      title: "Office Cleaning",
-      price: 999,
-      category: "Cleaning",
-      images: ["/placeholder.svg"],
-      rating: 4.8,
-      reviewCount: 102,
-      duration: 4,
-      providerName: "CleanPro Services"
-    }
-  ];
-
-  // Mock reviews data
-  const reviews = [
-    {
-      id: "1",
-      userName: "Jane Smith",
-      userImage: "/placeholder.svg",
-      rating: 5,
-      date: "2023-05-10",
-      comment: "Exceptional service! The cleaner was thorough and professional. My house has never looked better."
-    },
-    {
-      id: "2",
-      userName: "John Doe",
-      userImage: "/placeholder.svg",
-      rating: 4,
-      date: "2023-04-28",
-      comment: "Very good service overall. Missed a few spots under the furniture but otherwise excellent."
-    },
-    {
-      id: "3",
-      userName: "Sarah Johnson",
-      userImage: "/placeholder.svg",
-      rating: 5,
-      date: "2023-04-15",
-      comment: "Fantastic job! Very detail-oriented and efficient. Will definitely book again."
     }
   ];
 
@@ -206,9 +166,9 @@ export default function ServiceDetailsPage() {
   if (isLoading) {
     return (
       <MainLayout>
-        <div className="container py-8 flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="ml-2">Loading service details...</span>
+        <div className="container py-4 flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
+          <span>Loading service details...</span>
         </div>
       </MainLayout>
     );
@@ -217,65 +177,37 @@ export default function ServiceDetailsPage() {
   if (error || !service) {
     return (
       <MainLayout>
-        <div className="container py-8">
+        <div className="container py-4">
           <Card>
-            <CardHeader>
-              <CardTitle>Error</CardTitle>
-              <CardDescription>
+            <CardContent className="py-6">
+              <h2 className="text-xl font-bold mb-2">Service Not Found</h2>
+              <p className="text-muted-foreground mb-4">
                 We couldn't load this service. It might have been removed or doesn't exist.
-              </CardDescription>
-            </CardHeader>
-            <CardFooter>
+              </p>
               <Button variant="outline" onClick={() => navigate(-1)}>Go Back</Button>
-            </CardFooter>
+            </CardContent>
           </Card>
         </div>
       </MainLayout>
     );
   }
 
-  // Calculate rating distribution
-  const ratingDistribution = [
-    { rating: 5, percentage: 70 },
-    { rating: 4, percentage: 20 },
-    { rating: 3, percentage: 5 },
-    { rating: 2, percentage: 3 },
-    { rating: 1, percentage: 2 }
+  // Create breadcrumb items for this page
+  const breadcrumbItems = [
+    { label: 'Services', path: '/services' },
+    { label: service.category, path: `/services?category=${service.category}` },
+    { label: service.title }
   ];
 
   return (
     <MainLayout>
-      <div className="container py-4 md:py-6">
+      <div className="container py-4">
         {/* Breadcrumb Navigation */}
-        <Breadcrumb className="mb-4">
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link to="/">Home</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link to="/services">Services</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link to={`/services?category=${service.category}`}>{service.category}</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>{service.title}</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
+        <PageBreadcrumb items={breadcrumbItems} />
 
         {/* Header Section */}
         <div className="flex justify-between items-start mb-4">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{service.title}</h1>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{service.title}</h1>
           <Button 
             variant="ghost" 
             size="icon" 
@@ -290,7 +222,7 @@ export default function ServiceDetailsPage() {
           </Button>
         </div>
 
-        <div className="flex items-center mb-6 gap-2 flex-wrap">
+        <div className="flex items-center mb-4 gap-2 flex-wrap">
           <Badge variant="outline" className="bg-secondary text-secondary-foreground">
             <Tag className="h-3.5 w-3.5 mr-1" />
             {service.category}
@@ -307,7 +239,7 @@ export default function ServiceDetailsPage() {
         </div>
 
         {/* Hero Section with Left-Right Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {/* Left Column - Service Image Carousel */}
           <div className="md:col-span-2">
             {service.images && service.images.length > 0 ? (
@@ -328,8 +260,8 @@ export default function ServiceDetailsPage() {
                     </CarouselItem>
                   ))}
                 </CarouselContent>
-                <CarouselPrevious className="-left-4 md:-left-6" />
-                <CarouselNext className="-right-4 md:-right-6" />
+                <CarouselPrevious className="carousel-button -left-3 md:-left-4" />
+                <CarouselNext className="carousel-button -right-3 md:-right-4" />
               </Carousel>
             ) : (
               <div className="bg-muted rounded-md">
@@ -341,7 +273,7 @@ export default function ServiceDetailsPage() {
               </div>
             )}
 
-            {/* Thumbnails Row (Desktop Only) */}
+            {/* Thumbnails Row */}
             <div className="hidden md:grid grid-cols-5 gap-2 mt-2">
               {service.images?.slice(0, 5).map((image, index) => (
                 <div key={`thumb-${index}`} className="rounded-md overflow-hidden border cursor-pointer hover:opacity-80 transition-opacity">
@@ -363,13 +295,7 @@ export default function ServiceDetailsPage() {
           {/* Right Column - Quick Info Card */}
           <div>
             <Card className="sticky top-20">
-              <CardHeader>
-                <CardTitle>Book this service</CardTitle>
-                <CardDescription>
-                  Get your service scheduled today
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 pt-4">
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Price</span>
                   <span className="text-2xl font-bold">₹{service.price}</span>
@@ -384,16 +310,9 @@ export default function ServiceDetailsPage() {
                     <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
                     <span>{service.availabilitySchedule}</span>
                   </div>
-                  <div className="flex items-center text-sm">
-                    <Globe className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span className="line-clamp-1">
-                      Available in {service.serviceableAreas?.slice(0, 2).join(', ')}
-                      {service.serviceableAreas && service.serviceableAreas.length > 2 ? ' & more' : ''}
-                    </span>
-                  </div>
                 </div>
                 
-                <div className="pt-2 border-t">
+                <div className="pt-2">
                   <Button asChild className="w-full">
                     <Link to={`/services/${service.id}/booking`}>
                       Book Now
@@ -407,13 +326,11 @@ export default function ServiceDetailsPage() {
 
         {/* Main Content Area */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-2 space-y-8">
+          <div className="md:col-span-2 space-y-6">
             {/* Service Description Section */}
             <Card>
-              <CardHeader>
-                <CardTitle>About this service</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-4 pt-6">
+                <h2 className="text-xl font-semibold">About this service</h2>
                 <div>
                   <p className="whitespace-pre-line mb-4">
                     {service.description || "No description provided."}
@@ -426,24 +343,28 @@ export default function ServiceDetailsPage() {
                     <TabsTrigger value="not-included">What's Not Included</TabsTrigger>
                   </TabsList>
                   <TabsContent value="included" className="space-y-2">
-                    <ul className="space-y-1">
-                      {service.whatsIncluded?.map((item, index) => (
-                        <li key={`included-${index}`} className="flex items-start">
-                          <Check className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    {service.whatsIncluded?.map((item, index) => (
+                      <div key={`included-${index}`} className="flex items-start">
+                        <div className="h-5 w-5 rounded-full bg-green-500/20 text-green-600 flex items-center justify-center mr-2 mt-0.5">
+                          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M11.4669 3.72684C11.7558 3.91574 11.8369 4.30308 11.648 4.59198L7.39799 11.092C7.29783 11.2452 7.13556 11.3467 6.95402 11.3699C6.77247 11.3931 6.58989 11.3355 6.45446 11.2124L3.70446 8.71241C3.44905 8.48022 3.43023 8.08494 3.66242 7.82953C3.89461 7.57412 4.28989 7.55529 4.5453 7.78749L6.75292 9.79441L10.6018 3.90792C10.7907 3.61902 11.178 3.53795 11.4669 3.72684Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"></path>
+                          </svg>
+                        </div>
+                        <span>{item}</span>
+                      </div>
+                    ))}
                   </TabsContent>
                   <TabsContent value="not-included" className="space-y-2">
-                    <ul className="space-y-1">
-                      {service.whatsNotIncluded?.map((item, index) => (
-                        <li key={`not-included-${index}`} className="flex items-start">
-                          <X className="h-5 w-5 text-red-500 mr-2 mt-0.5" />
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    {service.whatsNotIncluded?.map((item, index) => (
+                      <div key={`not-included-${index}`} className="flex items-start">
+                        <div className="h-5 w-5 rounded-full bg-red-500/20 text-red-600 flex items-center justify-center mr-2 mt-0.5">
+                          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M11.7816 4.03157C12.0062 3.80702 12.0062 3.44295 11.7816 3.2184C11.5571 2.99385 11.193 2.99385 10.9685 3.2184L7.50005 6.68682L4.03164 3.2184C3.80708 2.99385 3.44301 2.99385 3.21846 3.2184C2.99391 3.44295 2.99391 3.80702 3.21846 4.03157L6.68688 7.49999L3.21846 10.9684C2.99391 11.193 2.99391 11.557 3.21846 11.7816C3.44301 12.0061 3.80708 12.0061 4.03164 11.7816L7.50005 8.31316L10.9685 11.7816C11.193 12.0061 11.5571 12.0061 11.7816 11.7816C12.0062 11.557 12.0062 11.193 11.7816 10.9684L8.31322 7.49999L11.7816 4.03157Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"></path>
+                          </svg>
+                        </div>
+                        <span>{item}</span>
+                      </div>
+                    ))}
                   </TabsContent>
                 </Tabs>
               </CardContent>
@@ -451,11 +372,8 @@ export default function ServiceDetailsPage() {
 
             {/* Provider Information Section */}
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Service Provider</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-start space-x-4 mb-4">
+              <CardContent className="pt-6 space-y-4">
+                <div className="flex items-start space-x-4">
                   <Avatar className="h-12 w-12">
                     <AvatarImage src={service.providerImage || ""} />
                     <AvatarFallback>
@@ -464,203 +382,52 @@ export default function ServiceDetailsPage() {
                   </Avatar>
                   <div>
                     <div className="flex items-center">
-                      <h3 className="font-medium">{service.providerName}</h3>
+                      <h3 className="font-medium">Service by {service.providerName}</h3>
                       <Badge variant="outline" className="ml-2 text-xs px-2 py-0 bg-blue-50 text-blue-700 border-blue-200">
                         Verified
                       </Badge>
                     </div>
-                    <div className="flex items-center mt-1 mb-2">
+                    <div className="flex items-center mt-1">
                       <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400 mr-1" />
                       <span className="text-sm">{service.rating}</span>
                       <span className="text-xs text-muted-foreground ml-1">
                         ({service.reviewCount} reviews)
                       </span>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      {service.providerBio}
-                    </p>
-                  </div>
-                </div>
-                <div className="pt-3 border-t">
-                  <h4 className="font-medium mb-2 text-sm">Other services by this provider</h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    {relatedServices.slice(0, 2).map((relatedService) => (
-                      <Link 
-                        key={relatedService.id} 
-                        to={`/services/${relatedService.id}`}
-                        className="block group"
-                      >
-                        <div className="aspect-video rounded-md overflow-hidden bg-muted">
-                          <img 
-                            src={relatedService.images[0]} 
-                            alt={relatedService.title}
-                            className="object-cover w-full h-full group-hover:scale-105 transition-transform"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = "/placeholder.svg";
-                            }}
-                          />
-                        </div>
-                        <div className="mt-1">
-                          <h5 className="text-sm font-medium group-hover:text-primary truncate">{relatedService.title}</h5>
-                          <p className="text-xs text-muted-foreground">₹{relatedService.price}</p>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <Button variant="outline" size="sm">
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    Contact Provider
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    View Profile
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Ratings & Reviews Section */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle>Reviews & Ratings</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                  <div className="space-y-2">
-                    <div className="flex items-baseline">
-                      <span className="text-4xl font-bold">{service.rating}</span>
-                      <span className="text-lg text-muted-foreground ml-2">out of 5</span>
-                    </div>
-                    <div className="flex items-center">
-                      {[1, 2, 3, 4, 5].map(star => (
-                        <Star key={star} className={`h-5 w-5 ${star <= Math.floor(service.rating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
-                      ))}
-                    </div>
-                    <p className="text-sm text-muted-foreground">{service.reviewCount} total reviews</p>
-                  </div>
-                  <div className="space-y-1.5">
-                    {ratingDistribution.map((item) => (
-                      <div key={item.rating} className="flex items-center gap-2">
-                        <div className="flex items-center w-12">
-                          <span className="mr-1">{item.rating}</span>
-                          <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-                        </div>
-                        <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-yellow-400 rounded-full" 
-                            style={{ width: `${item.percentage}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-sm text-muted-foreground w-8">{item.percentage}%</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
-                <div className="border-t pt-4">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="font-medium">Customer Reviews</h3>
-                    <Button variant="outline" size="sm">
-                      Write a Review
+                    <Button variant="outline" size="sm" className="mt-2">
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      Contact Provider
                     </Button>
                   </div>
-                  
-                  <div className="space-y-6">
-                    {reviews.map((review) => (
-                      <div key={review.id} className="border-b pb-4 last:border-0">
-                        <div className="flex items-start gap-3">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={review.userImage || ""} />
-                            <AvatarFallback>{review.userName.substring(0, 2).toUpperCase()}</AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between">
-                              <h4 className="font-medium text-sm">{review.userName}</h4>
-                              <span className="text-xs text-muted-foreground">{review.date}</span>
-                            </div>
-                            <div className="flex mt-1 mb-2">
-                              {[1, 2, 3, 4, 5].map(star => (
-                                <Star key={`review-${review.id}-star-${star}`} className={`h-3.5 w-3.5 ${star <= review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
-                              ))}
-                            </div>
-                            <p className="text-sm">{review.comment}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Policies & FAQs */}
+            <Card>
+              <CardContent className="pt-6">
+                <div className="space-y-4">
+                  <h2 className="text-lg font-semibold mb-2 flex items-center">
+                    <Shield className="h-5 w-5 mr-2" /> Policies
+                  </h2>
+                  <div>
+                    <h4 className="font-medium mb-1">Cancellation Policy</h4>
+                    <p className="text-sm text-muted-foreground">{service.cancellationPolicy}</p>
                   </div>
                   
-                  {service.reviewCount > reviews.length && (
-                    <div className="flex justify-center mt-4">
-                      <Button variant="outline">View All Reviews</Button>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Service Location / Coverage */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5" /> Service Coverage
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="bg-muted rounded-md p-4 mb-4">
-                  <h4 className="font-medium mb-2">Serviceable Areas</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {service.serviceableAreas?.map((area, index) => (
-                      <Badge key={`area-${index}`} variant="outline" className="bg-muted-foreground/10">
-                        {area}
-                      </Badge>
+                  <h2 className="text-lg font-semibold mb-2 flex items-center pt-4 border-t">
+                    <HelpCircle className="h-5 w-5 mr-2" /> Frequently Asked Questions
+                  </h2>
+                  <Accordion type="single" collapsible className="w-full">
+                    {service.faqs?.slice(0, 3).map((faq, index) => (
+                      <AccordionItem key={`faq-${index}`} value={`faq-${index}`}>
+                        <AccordionTrigger className="text-left">{faq.question}</AccordionTrigger>
+                        <AccordionContent>
+                          <p className="text-muted-foreground">{faq.answer}</p>
+                        </AccordionContent>
+                      </AccordionItem>
                     ))}
-                  </div>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  This provider offers on-site services in the locations listed above. Please confirm your location during booking.
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* FAQs Section */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2">
-                  <HelpCircle className="h-5 w-5" /> Frequently Asked Questions
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Accordion type="single" collapsible className="w-full">
-                  {service.faqs?.map((faq, index) => (
-                    <AccordionItem key={`faq-${index}`} value={`faq-${index}`}>
-                      <AccordionTrigger className="text-left">{faq.question}</AccordionTrigger>
-                      <AccordionContent>
-                        <p className="text-muted-foreground">{faq.answer}</p>
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
-              </CardContent>
-            </Card>
-
-            {/* Policies Section */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2">
-                  <Shield className="h-5 w-5" /> Policies
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h4 className="font-medium mb-1">Cancellation Policy</h4>
-                  <p className="text-sm text-muted-foreground">{service.cancellationPolicy}</p>
-                </div>
-                <div>
-                  <h4 className="font-medium mb-1">Refund Policy</h4>
-                  <p className="text-sm text-muted-foreground">{service.refundPolicy}</p>
+                  </Accordion>
                 </div>
               </CardContent>
             </Card>
@@ -673,9 +440,9 @@ export default function ServiceDetailsPage() {
         </div>
 
         {/* Related Services Section */}
-        <div className="mt-10">
+        <div className="mt-8 mb-6">
           <h2 className="text-xl font-semibold mb-4">Similar Services</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {relatedServices.map((relatedService) => (
               <Link 
                 key={relatedService.id}
@@ -683,52 +450,30 @@ export default function ServiceDetailsPage() {
                 className="block group"
               >
                 <Card className="h-full overflow-hidden hover:shadow-md transition-shadow">
-                  <div className="relative">
-                    <AspectRatio ratio={4/3}>
-                      <img 
-                        src={relatedService.images[0]} 
-                        alt={relatedService.title}
-                        className="object-cover w-full h-full group-hover:scale-105 transition-transform"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = "/placeholder.svg";
-                        }}
-                      />
-                    </AspectRatio>
-                    <div className="absolute top-2 right-2">
-                      <Badge className="bg-secondary/80 backdrop-blur-sm">{relatedService.category}</Badge>
-                    </div>
-                  </div>
+                  <AspectRatio ratio={4/3}>
+                    <img 
+                      src={relatedService.images[0]} 
+                      alt={relatedService.title}
+                      className="object-cover w-full h-full group-hover:scale-105 transition-transform"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = "/placeholder.svg";
+                      }}
+                    />
+                  </AspectRatio>
                   <CardContent className="p-3">
-                    <h3 className="font-semibold truncate group-hover:text-primary">{relatedService.title}</h3>
+                    <h3 className="font-semibold truncate group-hover:text-primary text-sm">{relatedService.title}</h3>
                     <div className="flex items-center justify-between mt-1">
-                      <p className="font-medium">₹{relatedService.price}</p>
-                      <div className="flex items-center text-sm">
-                        <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400 mr-1" />
+                      <p className="font-medium text-sm">₹{relatedService.price}</p>
+                      <div className="flex items-center text-xs">
+                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 mr-1" />
                         <span>{relatedService.rating}</span>
                       </div>
-                    </div>
-                    <div className="flex items-center text-xs text-muted-foreground mt-1">
-                      <Clock className="h-3 w-3 mr-1" />
-                      <span>{relatedService.duration} hr</span>
-                      <span className="mx-1">•</span>
-                      <span className="truncate">{relatedService.providerName}</span>
                     </div>
                   </CardContent>
                 </Card>
               </Link>
             ))}
           </div>
-        </div>
-
-        {/* Bottom CTA */}
-        <div className="mt-10 mb-6 text-center">
-          <h3 className="text-lg font-semibold mb-2">Ready to book this service?</h3>
-          <p className="text-muted-foreground mb-4">Professional service with satisfaction guarantee</p>
-          <Button asChild size="lg" className="px-8">
-            <Link to={`/services/${service.id}/booking`}>
-              Book Now
-            </Link>
-          </Button>
         </div>
       </div>
     </MainLayout>
