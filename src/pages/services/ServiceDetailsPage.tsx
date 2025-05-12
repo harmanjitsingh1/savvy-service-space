@@ -16,7 +16,6 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { PageBreadcrumb } from "@/components/layout/PageBreadcrumb";
 
 export default function ServiceDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -28,8 +27,6 @@ export default function ServiceDetailsPage() {
     queryKey: ['service', id],
     queryFn: async () => {
       if (!id) throw new Error('Service ID is required');
-      
-      console.log("Fetching service with ID:", id);
       
       // First, fetch the service details
       const { data: serviceData, error: serviceError } = await supabase
@@ -43,8 +40,6 @@ export default function ServiceDetailsPage() {
         toast.error('Failed to load service details');
         throw serviceError;
       }
-
-      console.log("Fetched service data:", serviceData);
       
       // Fetch the provider profile separately
       const { data: profileData, error: profileError } = await supabase
@@ -115,7 +110,6 @@ export default function ServiceDetailsPage() {
         refundPolicy: 'Not satisfied? Report within 24 hours for a free reclean or partial refund.'
       };
       
-      console.log("Transformed service:", transformedService);
       return transformedService;
     },
     enabled: !!id,
@@ -146,6 +140,28 @@ export default function ServiceDetailsPage() {
       reviewCount: 45,
       duration: 1,
       providerName: "Hygiene Experts"
+    },
+    {
+      id: "3",
+      title: "Carpet Deep Cleaning",
+      price: 549,
+      category: "Cleaning",
+      images: ["/placeholder.svg"],
+      rating: 4.7,
+      reviewCount: 67,
+      duration: 2,
+      providerName: "Spotless Floors"
+    },
+    {
+      id: "4",
+      title: "Office Sanitization",
+      price: 899,
+      category: "Cleaning",
+      images: ["/placeholder.svg"],
+      rating: 4.8,
+      reviewCount: 32,
+      duration: 4,
+      providerName: "Business Clean Co."
     }
   ];
 
@@ -202,9 +218,6 @@ export default function ServiceDetailsPage() {
   return (
     <MainLayout>
       <div className="container py-4">
-        {/* Breadcrumb Navigation */}
-        <PageBreadcrumb items={breadcrumbItems} />
-
         {/* Header Section */}
         <div className="flex justify-between items-start mb-4">
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{service.title}</h1>
@@ -238,105 +251,70 @@ export default function ServiceDetailsPage() {
           </div>
         </div>
 
-        {/* Hero Section with Left-Right Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          {/* Left Column - Service Image Carousel */}
-          <div className="md:col-span-2">
-            {service.images && service.images.length > 0 ? (
-              <Carousel className="w-full">
-                <CarouselContent>
-                  {service.images.map((image, index) => (
-                    <CarouselItem key={index}>
-                      <AspectRatio ratio={16 / 9} className="bg-muted">
-                        <img 
-                          src={image} 
-                          alt={`${service.title} - image ${index + 1}`}
-                          className="rounded-md object-cover w-full h-full"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = "/placeholder.svg";
-                          }}
-                        />
-                      </AspectRatio>
-                    </CarouselItem>
-                  ))}
-                </CarouselContent>
-                <CarouselPrevious className="carousel-button -left-3 md:-left-4" />
-                <CarouselNext className="carousel-button -right-3 md:-right-4" />
-              </Carousel>
-            ) : (
-              <div className="bg-muted rounded-md">
-                <AspectRatio ratio={16 / 9}>
-                  <div className="flex items-center justify-center h-full">
-                    No images available
-                  </div>
-                </AspectRatio>
-              </div>
-            )}
-
-            {/* Thumbnails Row */}
-            <div className="hidden md:grid grid-cols-5 gap-2 mt-2">
-              {service.images?.slice(0, 5).map((image, index) => (
-                <div key={`thumb-${index}`} className="rounded-md overflow-hidden border cursor-pointer hover:opacity-80 transition-opacity">
-                  <AspectRatio ratio={1}>
-                    <img 
-                      src={image} 
-                      alt={`Thumbnail ${index + 1}`}
-                      className="object-cover w-full h-full"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = "/placeholder.svg";
-                      }}
-                    />
-                  </AspectRatio>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Right Column - Quick Info Card */}
-          <div>
-            <Card className="sticky top-20">
-              <CardContent className="space-y-4 pt-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Price</span>
-                  <span className="text-2xl font-bold">₹{service.price}</span>
-                </div>
-                
-                <div className="space-y-3">
-                  <div className="flex items-center text-sm">
-                    <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span>{service.duration} hour{service.duration !== 1 ? 's' : ''}</span>
-                  </div>
-                  <div className="flex items-center text-sm">
-                    <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span>{service.availabilitySchedule}</span>
-                  </div>
-                </div>
-                
-                <div className="pt-2">
-                  <Button asChild className="w-full">
-                    <Link to={`/services/${service.id}/booking`}>
-                      Book Now
-                    </Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
         {/* Main Content Area */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Left Column - Service Content */}
           <div className="md:col-span-2 space-y-6">
-            {/* Service Description Section */}
-            <Card>
-              <CardContent className="space-y-4 pt-6">
-                <h2 className="text-xl font-semibold">About this service</h2>
-                <div>
-                  <p className="whitespace-pre-line mb-4">
-                    {service.description || "No description provided."}
-                  </p>
+            {/* Service Image Carousel */}
+            <div>
+              {service.images && service.images.length > 0 ? (
+                <Carousel className="w-full">
+                  <CarouselContent>
+                    {service.images.map((image, index) => (
+                      <CarouselItem key={index}>
+                        <AspectRatio ratio={16 / 9} className="bg-muted">
+                          <img 
+                            src={image} 
+                            alt={`${service.title} - image ${index + 1}`}
+                            className="rounded-md object-cover w-full h-full"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = "/placeholder.svg";
+                            }}
+                          />
+                        </AspectRatio>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className="left-2 carousel-button" />
+                  <CarouselNext className="right-2 carousel-button" />
+                </Carousel>
+              ) : (
+                <div className="bg-muted rounded-md">
+                  <AspectRatio ratio={16 / 9}>
+                    <div className="flex items-center justify-center h-full">
+                      No images available
+                    </div>
+                  </AspectRatio>
                 </div>
+              )}
 
+              {/* Thumbnails Row */}
+              <div className="hidden md:grid grid-cols-5 gap-2 mt-2">
+                {service.images?.slice(0, 5).map((image, index) => (
+                  <div key={`thumb-${index}`} className="rounded-md overflow-hidden border cursor-pointer hover:opacity-80 transition-opacity">
+                    <AspectRatio ratio={1}>
+                      <img 
+                        src={image} 
+                        alt={`Thumbnail ${index + 1}`}
+                        className="object-cover w-full h-full"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "/placeholder.svg";
+                        }}
+                      />
+                    </AspectRatio>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Service Description */}
+            <div className="whitespace-pre-line">
+              {service.description || "No description provided."}
+            </div>
+
+            {/* What's Included/Not Included */}
+            <Card>
+              <CardContent className="pt-6">
                 <Tabs defaultValue="included">
                   <TabsList className="mb-2">
                     <TabsTrigger value="included">What's Included</TabsTrigger>
@@ -372,7 +350,7 @@ export default function ServiceDetailsPage() {
 
             {/* Provider Information Section */}
             <Card>
-              <CardContent className="pt-6 space-y-4">
+              <CardContent className="pt-6">
                 <div className="flex items-start space-x-4">
                   <Avatar className="h-12 w-12">
                     <AvatarImage src={service.providerImage || ""} />
@@ -433,46 +411,79 @@ export default function ServiceDetailsPage() {
             </Card>
           </div>
 
-          {/* Right Column (Sidebar) */}
-          <div className="hidden md:block">
-            {/* This is intentionally left empty as the booking card is sticky at the top */}
+          {/* Right Column - Booking Info Card */}
+          <div>
+            <Card className="sticky top-20">
+              <CardContent className="space-y-4 pt-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Price</span>
+                  <span className="text-2xl font-bold">₹{service.price}</span>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center text-sm">
+                    <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <span>{service.duration} hour{service.duration !== 1 ? 's' : ''}</span>
+                  </div>
+                  <div className="flex items-center text-sm">
+                    <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <span>{service.availabilitySchedule}</span>
+                  </div>
+                </div>
+                
+                <div className="pt-2">
+                  <Button asChild className="w-full">
+                    <Link to={`/services/${service.id}/booking`}>
+                      Book Now
+                    </Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
 
-        {/* Related Services Section */}
+        {/* Similar Services Section - Horizontal Scrolling Carousel */}
         <div className="mt-8 mb-6">
           <h2 className="text-xl font-semibold mb-4">Similar Services</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {relatedServices.map((relatedService) => (
-              <Link 
-                key={relatedService.id}
-                to={`/services/${relatedService.id}`} 
-                className="block group"
-              >
-                <Card className="h-full overflow-hidden hover:shadow-md transition-shadow">
-                  <AspectRatio ratio={4/3}>
-                    <img 
-                      src={relatedService.images[0]} 
-                      alt={relatedService.title}
-                      className="object-cover w-full h-full group-hover:scale-105 transition-transform"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = "/placeholder.svg";
-                      }}
-                    />
-                  </AspectRatio>
-                  <CardContent className="p-3">
-                    <h3 className="font-semibold truncate group-hover:text-primary text-sm">{relatedService.title}</h3>
-                    <div className="flex items-center justify-between mt-1">
-                      <p className="font-medium text-sm">₹{relatedService.price}</p>
-                      <div className="flex items-center text-xs">
-                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 mr-1" />
-                        <span>{relatedService.rating}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
+          <div className="relative">
+            <Carousel className="w-full">
+              <CarouselContent className="-ml-2 md:-ml-4">
+                {relatedServices.map((relatedService) => (
+                  <CarouselItem key={relatedService.id} className="pl-2 md:pl-4 basis-1/2 md:basis-1/3 lg:basis-1/4">
+                    <Link 
+                      to={`/services/${relatedService.id}`} 
+                      className="block group h-full"
+                    >
+                      <Card className="h-full overflow-hidden hover:shadow-md transition-shadow">
+                        <AspectRatio ratio={4/3}>
+                          <img 
+                            src={relatedService.images[0]} 
+                            alt={relatedService.title}
+                            className="object-cover w-full h-full group-hover:scale-105 transition-transform"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = "/placeholder.svg";
+                            }}
+                          />
+                        </AspectRatio>
+                        <CardContent className="p-3">
+                          <h3 className="font-semibold truncate group-hover:text-primary text-sm">{relatedService.title}</h3>
+                          <div className="flex items-center justify-between mt-1">
+                            <p className="font-medium text-sm">₹{relatedService.price}</p>
+                            <div className="flex items-center text-xs">
+                              <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 mr-1" />
+                              <span>{relatedService.rating}</span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious className="left-0 carousel-button" />
+              <CarouselNext className="right-0 carousel-button" />
+            </Carousel>
           </div>
         </div>
       </div>

@@ -90,14 +90,17 @@
 /* Reduce default container padding for mobile */
 @media (max-width: 640px) {
   .container {
-    padding-left: 1rem !important;
-    padding-right: 1rem !important;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
   }
 }
 
 /* Fix for carousel buttons to ensure they're visible */
 .carousel-button {
   @apply bg-background/80 hover:bg-background backdrop-blur-sm border shadow-sm z-10;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 /* Ensuring service card grid is responsive */
