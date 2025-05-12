@@ -25,6 +25,7 @@ export interface Service {
   providerId: string;
   providerName: string;
   providerImage?: string;
+  providerBio?: string;
   images: string[];
   rating: number;
   reviewCount: number;
@@ -33,6 +34,16 @@ export interface Service {
   available: boolean;
   featured?: boolean;
   createdAt: string;
+  availabilitySchedule?: string;
+  serviceableAreas?: string[];
+  whatsIncluded?: string[];
+  whatsNotIncluded?: string[];
+  faqs?: Array<{
+    question: string;
+    answer: string;
+  }>;
+  cancellationPolicy?: string;
+  refundPolicy?: string;
 }
 
 export interface Category {
