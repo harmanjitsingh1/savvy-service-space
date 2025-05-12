@@ -90,8 +90,8 @@
 /* Reduce default container padding for mobile */
 @media (max-width: 640px) {
   .container {
-    padding-left: 0.75rem !important;
-    padding-right: 0.75rem !important;
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
   }
 }
 
@@ -101,6 +101,12 @@
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
+  opacity: 0.8;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.carousel-button:hover {
+  opacity: 1;
 }
 
 /* Ensuring service card grid is responsive */

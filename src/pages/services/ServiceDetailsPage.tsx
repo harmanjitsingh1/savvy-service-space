@@ -8,13 +8,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { Calendar, Clock, MessageSquare, Star, Loader2, Heart, MapPin, Shield, Tag, HelpCircle } from "lucide-react";
+import { Calendar, Clock, MessageSquare, Star, Loader2, Heart, MapPin, Shield, HelpCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Service } from "@/types";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 export default function ServiceDetailsPage() {
@@ -22,6 +21,7 @@ export default function ServiceDetailsPage() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const [isSaved, setIsSaved] = useState(false);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   const { data: service, isLoading, error } = useQuery({
     queryKey: ['service', id],
@@ -179,6 +179,10 @@ export default function ServiceDetailsPage() {
     }
   };
 
+  const handleThumbnailClick = (index: number) => {
+    setActiveImageIndex(index);
+  };
+
   if (isLoading) {
     return (
       <MainLayout>
@@ -208,13 +212,6 @@ export default function ServiceDetailsPage() {
     );
   }
 
-  // Create breadcrumb items for this page
-  const breadcrumbItems = [
-    { label: 'Services', path: '/services' },
-    { label: service.category, path: `/services?category=${service.category}` },
-    { label: service.title }
-  ];
-
   return (
     <MainLayout>
       <div className="container py-4">
@@ -237,7 +234,6 @@ export default function ServiceDetailsPage() {
 
         <div className="flex items-center mb-4 gap-2 flex-wrap">
           <Badge variant="outline" className="bg-secondary text-secondary-foreground">
-            <Tag className="h-3.5 w-3.5 mr-1" />
             {service.category}
           </Badge>
           <div className="flex items-center">
@@ -258,7 +254,7 @@ export default function ServiceDetailsPage() {
             {/* Service Image Carousel */}
             <div>
               {service.images && service.images.length > 0 ? (
-                <Carousel className="w-full">
+                <Carousel className="w-full" value={activeImageIndex} onValueChange={setActiveImageIndex}>
                   <CarouselContent>
                     {service.images.map((image, index) => (
                       <CarouselItem key={index}>
@@ -289,9 +285,15 @@ export default function ServiceDetailsPage() {
               )}
 
               {/* Thumbnails Row */}
-              <div className="hidden md:grid grid-cols-5 gap-2 mt-2">
+              <div className="grid grid-cols-5 gap-2 mt-2">
                 {service.images?.slice(0, 5).map((image, index) => (
-                  <div key={`thumb-${index}`} className="rounded-md overflow-hidden border cursor-pointer hover:opacity-80 transition-opacity">
+                  <div 
+                    key={`thumb-${index}`} 
+                    className={`rounded-md overflow-hidden border cursor-pointer hover:opacity-80 transition-opacity ${
+                      activeImageIndex === index ? 'border-primary ring-2 ring-primary' : 'border-border'
+                    }`}
+                    onClick={() => handleThumbnailClick(index)}
+                  >
                     <AspectRatio ratio={1}>
                       <img 
                         src={image} 
@@ -312,39 +314,37 @@ export default function ServiceDetailsPage() {
               {service.description || "No description provided."}
             </div>
 
-            {/* What's Included/Not Included */}
-            <Card>
-              <CardContent className="pt-6">
-                <Tabs defaultValue="included">
-                  <TabsList className="mb-2">
-                    <TabsTrigger value="included">What's Included</TabsTrigger>
-                    <TabsTrigger value="not-included">What's Not Included</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="included" className="space-y-2">
-                    {service.whatsIncluded?.map((item, index) => (
-                      <div key={`included-${index}`} className="flex items-start">
-                        <div className="h-5 w-5 rounded-full bg-green-500/20 text-green-600 flex items-center justify-center mr-2 mt-0.5">
-                          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M11.4669 3.72684C11.7558 3.91574 11.8369 4.30308 11.648 4.59198L7.39799 11.092C7.29783 11.2452 7.13556 11.3467 6.95402 11.3699C6.77247 11.3931 6.58989 11.3355 6.45446 11.2124L3.70446 8.71241C3.44905 8.48022 3.43023 8.08494 3.66242 7.82953C3.89461 7.57412 4.28989 7.55529 4.5453 7.78749L6.75292 9.79441L10.6018 3.90792C10.7907 3.61902 11.178 3.53795 11.4669 3.72684Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"></path>
-                          </svg>
-                        </div>
-                        <span>{item}</span>
-                      </div>
-                    ))}
-                  </TabsContent>
-                  <TabsContent value="not-included" className="space-y-2">
-                    {service.whatsNotIncluded?.map((item, index) => (
-                      <div key={`not-included-${index}`} className="flex items-start">
-                        <div className="h-5 w-5 rounded-full bg-red-500/20 text-red-600 flex items-center justify-center mr-2 mt-0.5">
-                          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M11.7816 4.03157C12.0062 3.80702 12.0062 3.44295 11.7816 3.2184C11.5571 2.99385 11.193 2.99385 10.9685 3.2184L7.50005 6.68682L4.03164 3.2184C3.80708 2.99385 3.44301 2.99385 3.21846 3.2184C2.99391 3.44295 2.99391 3.80702 3.21846 4.03157L6.68688 7.49999L3.21846 10.9684C2.99391 11.193 2.99391 11.557 3.21846 11.7816C3.44301 12.0061 3.80708 12.0061 4.03164 11.7816L7.50005 8.31316L10.9685 11.7816C11.193 12.0061 11.5571 12.0061 11.7816 11.7816C12.0062 11.557 12.0062 11.193 11.7816 10.9684L8.31322 7.49999L11.7816 4.03157Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"></path>
-                          </svg>
-                        </div>
-                        <span>{item}</span>
-                      </div>
-                    ))}
-                  </TabsContent>
-                </Tabs>
+            {/* Mobile View - Price and Booking Card */}
+            <Card className="md:hidden">
+              <CardContent className="space-y-4 pt-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Price</span>
+                  <span className="text-2xl font-bold">₹{service.price}</span>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center text-sm">
+                    <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <span>{service.duration} hour{service.duration !== 1 ? 's' : ''}</span>
+                  </div>
+                  <div className="flex items-center text-sm">
+                    <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <span>{service.availabilitySchedule}</span>
+                  </div>
+                </div>
+                
+                <p className="text-sm text-muted-foreground pt-2">
+                  {service.description.substring(0, 100)}
+                  {service.description.length > 100 ? '...' : ''}
+                </p>
+                
+                <div className="pt-2">
+                  <Button asChild className="w-full">
+                    <Link to={`/services/${service.id}/booking`}>
+                      Book Now
+                    </Link>
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
@@ -397,7 +397,7 @@ export default function ServiceDetailsPage() {
                     <HelpCircle className="h-5 w-5 mr-2" /> Frequently Asked Questions
                   </h2>
                   <Accordion type="single" collapsible className="w-full">
-                    {service.faqs?.slice(0, 3).map((faq, index) => (
+                    {service.faqs?.map((faq, index) => (
                       <AccordionItem key={`faq-${index}`} value={`faq-${index}`}>
                         <AccordionTrigger className="text-left">{faq.question}</AccordionTrigger>
                         <AccordionContent>
@@ -411,8 +411,8 @@ export default function ServiceDetailsPage() {
             </Card>
           </div>
 
-          {/* Right Column - Booking Info Card */}
-          <div>
+          {/* Right Column - Booking Info Card (Desktop Only) */}
+          <div className="hidden md:block">
             <Card className="sticky top-20">
               <CardContent className="space-y-4 pt-4">
                 <div className="flex justify-between items-center">
@@ -430,6 +430,11 @@ export default function ServiceDetailsPage() {
                     <span>{service.availabilitySchedule}</span>
                   </div>
                 </div>
+                
+                <p className="text-sm text-muted-foreground pt-2">
+                  {service.description.substring(0, 120)}
+                  {service.description.length > 120 ? '...' : ''}
+                </p>
                 
                 <div className="pt-2">
                   <Button asChild className="w-full">
@@ -481,8 +486,8 @@ export default function ServiceDetailsPage() {
                   </CarouselItem>
                 ))}
               </CarouselContent>
-              <CarouselPrevious className="left-0 carousel-button" />
-              <CarouselNext className="right-0 carousel-button" />
+              <CarouselPrevious className="left-2 carousel-button" />
+              <CarouselNext className="right-2 carousel-button" />
             </Carousel>
           </div>
         </div>

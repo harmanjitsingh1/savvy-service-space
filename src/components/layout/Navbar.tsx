@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,12 +10,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
-import { Menu, Search, Bell, MessageSquare, User, LogOut, ChevronDown, UserRound } from "lucide-react";
+import { Menu, Bell, MessageSquare, User, LogOut, ChevronDown, UserRound } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
-import { SERVICES } from "@/services/mockData";
 import { useOnClickOutside } from "@/hooks/use-click-outside";
 import { 
   Sheet, 
@@ -24,10 +22,9 @@ import {
   SheetTitle, 
   SheetTrigger 
 } from "@/components/ui/sheet";
+import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 
 export function Navbar() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
@@ -37,49 +34,6 @@ export function Navbar() {
   useOnClickOutside(searchRef, () => {
     setShowSearchResults(false);
   });
-
-  // Handle search functionality
-  useEffect(() => {
-    if (searchQuery.trim().length > 1) {
-      const filteredResults = SERVICES.filter(service => 
-        service.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        service.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        service.category.toLowerCase().includes(searchQuery.toLowerCase())
-      ).slice(0, 5); // Limit to 5 results
-      setSearchResults(filteredResults);
-      setShowSearchResults(true);
-    } else {
-      setSearchResults([]);
-      setShowSearchResults(false);
-    }
-  }, [searchQuery]);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/services?search=${encodeURIComponent(searchQuery)}`);
-      setShowSearchResults(false);
-      setSearchQuery("");
-    }
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSearch(e);
-    }
-  };
-
-  const handleSearchResultClick = (serviceId: string) => {
-    navigate(`/services/${serviceId}`);
-    setSearchQuery("");
-    setShowSearchResults(false);
-  };
-
-  const handleClickOutside = () => {
-    setTimeout(() => {
-      setShowSearchResults(false);
-    }, 200);
-  };
 
   const navLinks = [
     { title: "Home", path: "/" },
@@ -114,6 +68,10 @@ export function Navbar() {
                   </Link>
                 ))}
               </div>
+              <div className="mt-auto pt-4 border-t flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Theme</span>
+                <ThemeSwitcher />
+              </div>
             </SheetContent>
           </Sheet>
           
@@ -135,48 +93,13 @@ export function Navbar() {
           </nav>
         </div>
 
-        <div className="hidden md:flex flex-1 items-center justify-center px-2 max-w-md">
-          <form onSubmit={handleSearch} className="w-full relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search for services..."
-              className="w-full pl-8 bg-background"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={handleKeyPress}
-              onBlur={handleClickOutside}
-            />
-            {showSearchResults && searchResults.length > 0 && (
-              <div className="absolute w-full mt-1 bg-background border rounded-md shadow-lg z-50">
-                {searchResults.map((service) => (
-                  <div 
-                    key={service.id}
-                    className="p-2 hover:bg-muted cursor-pointer flex items-center"
-                    onClick={() => handleSearchResultClick(service.id)}
-                  >
-                    <div className="h-10 w-10 mr-3 rounded overflow-hidden bg-muted flex-shrink-0">
-                      <img 
-                        src={service.images?.[0] || "/placeholder.svg"} 
-                        alt="" 
-                        className="h-full w-full object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = "/placeholder.svg";
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <div className="font-medium">{service.title}</div>
-                      <div className="text-xs text-muted-foreground">{service.category}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </form>
-        </div>
+        {/* Empty div to maintain layout without search bar */}
+        <div className="hidden md:flex flex-1 items-center justify-center"></div>
 
         <div className="flex items-center space-x-2">
+          {/* Theme Switcher for desktop */}
+          <ThemeSwitcher className="hidden md:flex" />
+          
           {isAuthenticated && user ? (
             <>
               <IconButton 
@@ -253,45 +176,6 @@ export function Navbar() {
             </>
           )}
         </div>
-      </div>
-      <div className="md:hidden container pb-2">
-        <form onSubmit={handleSearch} className="relative">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search for services..."
-            className="w-full pl-8 bg-background"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyPress={handleKeyPress}
-          />
-          {showSearchResults && searchResults.length > 0 && (
-            <div className="absolute w-full mt-1 bg-background border rounded-md shadow-lg z-50">
-              {searchResults.map((service) => (
-                <div 
-                  key={service.id}
-                  className="p-2 hover:bg-muted cursor-pointer flex items-center"
-                  onClick={() => handleSearchResultClick(service.id)}
-                >
-                  <div className="h-10 w-10 mr-3 rounded overflow-hidden bg-muted flex-shrink-0">
-                    <img 
-                      src={service.images?.[0] || "/placeholder.svg"} 
-                      alt="" 
-                      className="h-full w-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = "/placeholder.svg";
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <div className="font-medium">{service.title}</div>
-                    <div className="text-xs text-muted-foreground">{service.category}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </form>
       </div>
     </header>
   );

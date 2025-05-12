@@ -1,3 +1,4 @@
+
 import * as React from "react"
 import useEmblaCarousel, {
   type UseEmblaCarouselType,
@@ -17,6 +18,8 @@ type CarouselProps = {
   plugins?: CarouselPlugin
   orientation?: "horizontal" | "vertical"
   setApi?: (api: CarouselApi) => void
+  value?: number
+  onValueChange?: (value: number) => void
 }
 
 type CarouselContextProps = {
@@ -26,6 +29,8 @@ type CarouselContextProps = {
   scrollNext: () => void
   canScrollPrev: boolean
   canScrollNext: boolean
+  activeIndex: number
+  scrollTo: (index: number) => void
 } & CarouselProps
 
 const CarouselContext = React.createContext<CarouselContextProps | null>(null)
@@ -52,6 +57,8 @@ const Carousel = React.forwardRef<
       plugins,
       className,
       children,
+      value,
+      onValueChange,
       ...props
     },
     ref
@@ -65,15 +72,23 @@ const Carousel = React.forwardRef<
     )
     const [canScrollPrev, setCanScrollPrev] = React.useState(false)
     const [canScrollNext, setCanScrollNext] = React.useState(false)
+    const [activeIndex, setActiveIndex] = React.useState(value || 0)
 
-    const onSelect = React.useCallback((api: CarouselApi) => {
-      if (!api) {
-        return
-      }
+    const onSelect = React.useCallback(
+      (api: CarouselApi) => {
+        if (!api) return
 
-      setCanScrollPrev(api.canScrollPrev())
-      setCanScrollNext(api.canScrollNext())
-    }, [])
+        setCanScrollPrev(api.canScrollPrev())
+        setCanScrollNext(api.canScrollNext())
+        const currentIndex = api.selectedScrollSnap()
+        setActiveIndex(currentIndex)
+        
+        if (typeof onValueChange === "function" && currentIndex !== value) {
+          onValueChange(currentIndex)
+        }
+      },
+      [onValueChange, value]
+    )
 
     const scrollPrev = React.useCallback(() => {
       api?.scrollPrev()
@@ -82,6 +97,15 @@ const Carousel = React.forwardRef<
     const scrollNext = React.useCallback(() => {
       api?.scrollNext()
     }, [api])
+
+    const scrollTo = React.useCallback(
+      (index: number) => {
+        if (api) {
+          api.scrollTo(index)
+        }
+      },
+      [api]
+    )
 
     const handleKeyDown = React.useCallback(
       (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -95,6 +119,13 @@ const Carousel = React.forwardRef<
       },
       [scrollPrev, scrollNext]
     )
+
+    // Sync API with external value if provided
+    React.useEffect(() => {
+      if (api && typeof value !== "undefined" && value !== activeIndex) {
+        api.scrollTo(value)
+      }
+    }, [api, value, activeIndex])
 
     React.useEffect(() => {
       if (!api || !setApi) {
@@ -115,6 +146,7 @@ const Carousel = React.forwardRef<
 
       return () => {
         api?.off("select", onSelect)
+        api?.off("reInit", onSelect)
       }
     }, [api, onSelect])
 
@@ -122,14 +154,17 @@ const Carousel = React.forwardRef<
       <CarouselContext.Provider
         value={{
           carouselRef,
-          api: api,
+          api,
           opts,
-          orientation:
-            orientation || (opts?.axis === "y" ? "vertical" : "horizontal"),
+          orientation: orientation || (opts?.axis === "y" ? "vertical" : "horizontal"),
           scrollPrev,
           scrollNext,
           canScrollPrev,
           canScrollNext,
+          activeIndex,
+          scrollTo,
+          value,
+          onValueChange,
         }}
       >
         <div
@@ -204,10 +239,10 @@ const CarouselPrevious = React.forwardRef<
       variant={variant}
       size={size}
       className={cn(
-        "absolute  h-8 w-8 rounded-full",
+        "absolute h-8 w-8 rounded-full",
         orientation === "horizontal"
-          ? "-left-12 top-1/2 -translate-y-1/2"
-          : "-top-12 left-1/2 -translate-x-1/2 rotate-90",
+          ? "left-2 top-1/2 -translate-y-1/2"
+          : "top-2 left-1/2 -translate-x-1/2 rotate-90",
         className
       )}
       disabled={!canScrollPrev}
@@ -235,8 +270,8 @@ const CarouselNext = React.forwardRef<
       className={cn(
         "absolute h-8 w-8 rounded-full",
         orientation === "horizontal"
-          ? "-right-12 top-1/2 -translate-y-1/2"
-          : "-bottom-12 left-1/2 -translate-x-1/2 rotate-90",
+          ? "right-2 top-1/2 -translate-y-1/2"
+          : "bottom-2 left-1/2 -translate-x-1/2 rotate-90",
         className
       )}
       disabled={!canScrollNext}

@@ -13,7 +13,7 @@ interface MainLayoutProps {
 export function MainLayout({ children, showBreadcrumb = true }: MainLayoutProps) {
   const location = useLocation();
   
-  // Don't show breadcrumbs on homepage or if explicitly disabled
+  // Only hide breadcrumbs on homepage
   const shouldShowBreadcrumb = showBreadcrumb && location.pathname !== '/';
   
   return (
