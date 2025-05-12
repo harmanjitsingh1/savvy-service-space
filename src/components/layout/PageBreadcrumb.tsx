@@ -1,125 +1,97 @@
 
 import React from "react";
-import { Link, useLocation, useParams } from "react-router-dom";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator
-} from "@/components/ui/breadcrumb";
+import { useLocation, Link } from "react-router-dom";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { Home } from "lucide-react";
+import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-interface BreadcrumbItem {
-  label: string;
-  path?: string;
-}
+const formatPath = (path: string) => {
+  return path
+    .split("-")
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
 
-interface PageBreadcrumbProps {
-  items?: BreadcrumbItem[];
-}
-
-export function PageBreadcrumb({ items }: PageBreadcrumbProps) {
+export function PageBreadcrumb() {
   const location = useLocation();
-  const params = useParams();
+  const { id } = useParams<{ id?: string }>();
   
-  // Extract service ID if present
-  const serviceIdMatch = location.pathname.match(/\/services\/([a-zA-Z0-9-]+)$/);
-  const serviceId = serviceIdMatch ? serviceIdMatch[1] : params.id;
-  
-  // Fetch service name if we're on a service page
-  const { data: serviceName } = useQuery({
-    queryKey: ['service-name', serviceId],
+  // Fetch service details if on a service detail page
+  const { data: service } = useQuery({
+    queryKey: ['service-breadcrumb', id],
     queryFn: async () => {
-      if (!serviceId) return null;
+      if (!id) return null;
       
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('provider_services')
         .select('title')
-        .eq('id', serviceId)
+        .eq('id', id)
         .single();
+        
+      if (error) {
+        console.error('Error fetching service title:', error);
+        return null;
+      }
       
-      return data?.title || 'Service Details';
+      return data;
     },
-    enabled: !!serviceId && location.pathname.includes('/services/'),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: !!id && location.pathname.includes('/services/'),
   });
   
-  // If no items provided, generate from current path
-  let breadcrumbItems = items || generateBreadcrumbItems(location.pathname, serviceName);
-  
+  // Create path parts for the breadcrumb
+  const pathParts = location.pathname.split('/').filter(p => p);
+
+  if (pathParts.length === 0) {
+    return null;
+  }
+
   return (
     <Breadcrumb className="mb-4">
-      <BreadcrumbList>
-        <BreadcrumbItem>
-          <BreadcrumbLink asChild>
-            <Link to="/">Home</Link>
-          </BreadcrumbLink>
-        </BreadcrumbItem>
-        <BreadcrumbSeparator />
+      <BreadcrumbItem>
+        <BreadcrumbLink asChild>
+          <Link to="/" className="flex items-center">
+            <Home className="h-4 w-4" />
+          </Link>
+        </BreadcrumbLink>
+      </BreadcrumbItem>
+      
+      {pathParts.map((part, index) => {
+        // Create the path up to this part
+        const path = `/${pathParts.slice(0, index + 1).join('/')}`;
         
-        {breadcrumbItems.map((item, index) => {
-          const isLast = index === breadcrumbItems.length - 1;
-          
-          return (
-            <React.Fragment key={item.label}>
-              <BreadcrumbItem>
-                {isLast ? (
-                  <BreadcrumbPage>{item.label}</BreadcrumbPage>
-                ) : (
-                  <BreadcrumbLink asChild>
-                    <Link to={item.path || '#'}>{item.label}</Link>
-                  </BreadcrumbLink>
-                )}
-              </BreadcrumbItem>
-              {!isLast && <BreadcrumbSeparator />}
-            </React.Fragment>
-          );
-        })}
-      </BreadcrumbList>
+        // Generate display text
+        let displayText = part;
+        
+        // If this is the service ID and we have service data, use the title
+        if (part === id && service?.title) {
+          displayText = service.title;
+        } 
+        // If it's a provider ID, we could fetch provider name here
+        else if (path.includes('/provider/') && part.length > 10) {
+          displayText = "Provider";
+        }
+        // For other parts, format them nicely
+        else if (!part.includes('-')) {
+          displayText = formatPath(part);
+        }
+        
+        return (
+          <React.Fragment key={path}>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              {index === pathParts.length - 1 ? (
+                <span className="font-medium truncate max-w-[200px]">{displayText}</span>
+              ) : (
+                <BreadcrumbLink asChild>
+                  <Link to={path}>{displayText}</Link>
+                </BreadcrumbLink>
+              )}
+            </BreadcrumbItem>
+          </React.Fragment>
+        );
+      })}
     </Breadcrumb>
   );
-}
-
-// Helper function to generate breadcrumb items from URL path
-function generateBreadcrumbItems(path: string, serviceName?: string | null): BreadcrumbItem[] {
-  // Skip empty segments and "home"
-  const segments = path.split('/').filter(segment => segment && segment !== 'home');
-  const breadcrumbItems: BreadcrumbItem[] = [];
-  
-  // Build up breadcrumb items with paths
-  let currentPath = '';
-  segments.forEach((segment, index) => {
-    currentPath += `/${segment}`;
-    
-    // If this is a service ID and we have a service name, use the name
-    if (
-      segment.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/) && 
-      serviceName && 
-      segments[index - 1] === 'services'
-    ) {
-      breadcrumbItems.push({
-        label: serviceName,
-        path: index < segments.length - 1 ? currentPath : undefined,
-      });
-      return;
-    }
-    
-    // Convert kebab-case or snake_case to Title Case
-    const label = segment
-      .replace(/[-_]/g, ' ')
-      .replace(/\b\w/g, char => char.toUpperCase())
-      // Handle special cases for better labels
-      .replace(/^Services$/, 'Services')
-      .replace(/^Provider$/, 'Provider Dashboard');
-    
-    breadcrumbItems.push({
-      label,
-      path: index < segments.length - 1 ? currentPath : undefined,
-    });
-  });
-  
-  return breadcrumbItems;
 }

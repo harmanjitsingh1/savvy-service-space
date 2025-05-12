@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -26,7 +27,9 @@ import BookingRequestsPage from "./pages/provider/BookingRequests";
 import EarningsPage from "./pages/provider/Earnings";
 import ProviderMessagesPage from "./pages/provider/Messages";
 import ProviderProfilePage from "./pages/provider/Profile";
+import ProviderPublicProfile from "./pages/provider/ProviderPublicProfile";
 import ProviderSettingsPage from "./pages/provider/Settings";
+import ChatPage from "./pages/messages/ChatPage";
 
 // Create a client
 const queryClient = new QueryClient();
@@ -47,6 +50,14 @@ const App = () => (
               <Route path="/services" element={<ServicesPage />} />
               <Route path="/services/:id" element={<ServiceDetailsPage />} />
               <Route path="/services/:id/booking" element={<ServiceBookingPage />} />
+              
+              {/* Provider public profile - accessible to everyone */}
+              <Route path="/provider/:id" element={<ProviderPublicProfile />} />
+              
+              {/* Chat functionality - protected */}
+              <Route element={<ProtectedRoute requiredRole="user" />}>
+                <Route path="/chat/:id" element={<ChatPage />} />
+              </Route>
               
               {/* Auth routes - only accessible when NOT logged in */}
               <Route element={<PublicRoute redirectPath="/" />}>

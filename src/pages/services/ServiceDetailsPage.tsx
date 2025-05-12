@@ -309,11 +309,6 @@ export default function ServiceDetailsPage() {
               </div>
             </div>
 
-            {/* Service Description */}
-            <div className="whitespace-pre-line">
-              {service.description || "No description provided."}
-            </div>
-
             {/* Mobile View - Price and Booking Card */}
             <Card className="md:hidden">
               <CardContent className="space-y-4 pt-4">
@@ -352,15 +347,17 @@ export default function ServiceDetailsPage() {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-start space-x-4">
-                  <Avatar className="h-12 w-12">
-                    <AvatarImage src={service.providerImage || ""} />
-                    <AvatarFallback>
-                      {service.providerName ? service.providerName.substring(0, 2).toUpperCase() : "SP"}
-                    </AvatarFallback>
-                  </Avatar>
+                  <Link to={`/provider/${service.providerId}`}>
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={service.providerImage || ""} />
+                      <AvatarFallback>
+                        {service.providerName ? service.providerName.substring(0, 2).toUpperCase() : "SP"}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Link>
                   <div>
                     <div className="flex items-center">
-                      <h3 className="font-medium">Service by {service.providerName}</h3>
+                      <h3 className="font-medium">Service by <Link to={`/provider/${service.providerId}`} className="hover:underline text-primary">{service.providerName}</Link></h3>
                       <Badge variant="outline" className="ml-2 text-xs px-2 py-0 bg-blue-50 text-blue-700 border-blue-200">
                         Verified
                       </Badge>
@@ -372,10 +369,12 @@ export default function ServiceDetailsPage() {
                         ({service.reviewCount} reviews)
                       </span>
                     </div>
-                    <Button variant="outline" size="sm" className="mt-2">
-                      <MessageSquare className="h-4 w-4 mr-2" />
-                      Contact Provider
-                    </Button>
+                    <Link to={`/chat/${service.providerId}`}>
+                      <Button variant="outline" size="sm" className="mt-2">
+                        <MessageSquare className="h-4 w-4 mr-2" />
+                        Contact Provider
+                      </Button>
+                    </Link>
                   </div>
                 </div>
               </CardContent>

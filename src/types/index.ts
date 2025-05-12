@@ -78,12 +78,12 @@ export interface Review {
 }
 
 export interface Message {
-  id: string;
-  senderId: string;
-  receiverId: string;
+  id?: string;
+  sender_id: string;
+  recipient_id: string;
   content: string;
   read: boolean;
-  createdAt: string;
+  created_at: string;
 }
 
 export interface ConversationSummary {
