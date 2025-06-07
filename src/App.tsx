@@ -54,8 +54,8 @@ const App = () => (
               {/* Provider public profile - accessible to everyone */}
               <Route path="/provider/:id" element={<ProviderPublicProfile />} />
               
-              {/* Chat functionality - protected */}
-              <Route element={<ProtectedRoute requiredRole="user" />}>
+              {/* Chat functionality - protected and accessible to both users and providers */}
+              <Route element={<ProtectedRoute />}>
                 <Route path="/chat/:id" element={<ChatPage />} />
               </Route>
               

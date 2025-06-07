@@ -18,7 +18,7 @@ export type Database = {
           notes: string | null
           provider_id: string
           provider_status: string | null
-          service_id: string
+          service_id: string | null
           status: string | null
           total_amount: number
           updated_at: string | null
@@ -32,7 +32,7 @@ export type Database = {
           notes?: string | null
           provider_id: string
           provider_status?: string | null
-          service_id: string
+          service_id?: string | null
           status?: string | null
           total_amount: number
           updated_at?: string | null
@@ -46,11 +46,82 @@ export type Database = {
           notes?: string | null
           provider_id?: string
           provider_status?: string | null
-          service_id?: string
+          service_id?: string | null
           status?: string | null
           total_amount?: number
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "provider_services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversations: {
+        Row: {
+          created_at: string | null
+          id: string
+          last_message: string | null
+          last_message_time: string | null
+          unread_by_user1: number | null
+          unread_by_user2: number | null
+          updated_at: string | null
+          user1_id: string
+          user2_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          last_message?: string | null
+          last_message_time?: string | null
+          unread_by_user1?: number | null
+          unread_by_user2?: number | null
+          updated_at?: string | null
+          user1_id: string
+          user2_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          last_message?: string | null
+          last_message_time?: string | null
+          unread_by_user1?: number | null
+          unread_by_user2?: number | null
+          updated_at?: string | null
+          user1_id?: string
+          user2_id?: string
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          read: boolean
+          recipient_id: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          read?: boolean
+          recipient_id: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          read?: boolean
+          recipient_id?: string
+          sender_id?: string
         }
         Relationships: []
       }
@@ -174,7 +245,15 @@ export type Database = {
           title?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "provider_services_provider_id_fkey1"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       saved_services: {
         Row: {
@@ -200,7 +279,7 @@ export type Database = {
             foreignKeyName: "saved_services_service_id_fkey"
             columns: ["service_id"]
             isOneToOne: false
-            referencedRelation: "services"
+            referencedRelation: "provider_services"
             referencedColumns: ["id"]
           },
         ]
@@ -249,7 +328,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_conversations: {
+        Args: { current_user_id: string }
+        Returns: {
+          id: string
+          user1_id: string
+          user2_id: string
+          last_message: string
+          last_message_time: string
+          unread_by_user1: number
+          unread_by_user2: number
+          other_user_id: string
+          other_user_full_name: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
